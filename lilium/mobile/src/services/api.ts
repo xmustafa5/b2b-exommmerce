@@ -55,29 +55,31 @@ api.interceptors.response.use(
 export const authApi = {
   register: async (data: { email: string; password: string; name: string }) => {
     const response = await api.post('/auth/register', data);
-    if (response.data.token) {
-      await AsyncStorage.setItem('token', response.data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data));
+    if (response.data.tokens?.accessToken) {
+      await AsyncStorage.setItem('token', response.data.tokens.accessToken);
+      await AsyncStorage.setItem('refreshToken', response.data.tokens.refreshToken);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
   },
 
   login: async (data: { email: string; password: string }) => {
     const response = await api.post('/auth/login', data);
-    if (response.data.token) {
-      await AsyncStorage.setItem('token', response.data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data));
+    if (response.data.tokens?.accessToken) {
+      await AsyncStorage.setItem('token', response.data.tokens.accessToken);
+      await AsyncStorage.setItem('refreshToken', response.data.tokens.refreshToken);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
   },
 
-  verify: async () => {
-    const response = await api.get('/auth/verify');
+  me: async () => {
+    const response = await api.get('/auth/me');
     return response.data;
   },
 
   logout: async () => {
-    await AsyncStorage.multiRemove(['token', 'user']);
+    await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
   },
 };
 
@@ -108,6 +110,105 @@ export const usersApi = {
 export const healthApi = {
   check: async () => {
     const response = await api.get('/health');
+    return response.data;
+  },
+};
+
+// Products API
+export const productsApi = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    zone?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) => {
+    const response = await api.get('/products', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/products/${id}`);
+    return response.data;
+  },
+
+  getByCategory: async (categoryId: string) => {
+    const response = await api.get('/products', {
+      params: { category: categoryId },
+    });
+    return response.data;
+  },
+};
+
+// Categories API
+export const categoriesApi = {
+  getAll: async () => {
+    const response = await api.get('/categories');
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+};
+
+// Orders API
+export const ordersApi = {
+  getAll: async (params?: { page?: number; limit?: number; status?: string }) => {
+    const response = await api.get('/orders', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/orders/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    addressId: string;
+    items: Array<{ productId: string; quantity: number; price: number }>;
+    notes?: string;
+  }) => {
+    const response = await api.post('/orders', data);
+    return response.data;
+  },
+
+  cancel: async (id: string) => {
+    const response = await api.delete(`/orders/${id}`);
+    return response.data;
+  },
+};
+
+// Favorites API
+export const favoritesApi = {
+  getAll: async () => {
+    const response = await api.get('/users/me/favorites');
+    return response.data;
+  },
+
+  add: async (productId: string) => {
+    const response = await api.post(`/users/favorites/${productId}`);
+    return response.data;
+  },
+
+  remove: async (productId: string) => {
+    const response = await api.delete(`/users/favorites/${productId}`);
+    return response.data;
+  },
+};
+
+// Promotions API
+export const promotionsApi = {
+  getActive: async (zone: string) => {
+    const response = await api.get(`/promotions/active/${zone}`);
+    return response.data;
+  },
+
+  applyToCart: async (cartItems: Array<{ productId: string; quantity: number; price: number }>) => {
+    const response = await api.post('/promotions/apply-to-cart', { cartItems });
     return response.data;
   },
 };

@@ -1,15 +1,21 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import env from '@fastify/env'
+import jwt from '@fastify/jwt'
+import sensible from '@fastify/sensible'
+import rateLimit from '@fastify/rate-limit'
 import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
+import multipart from '@fastify/multipart'
+import fastifyStatic from '@fastify/static'
 import { PrismaClient } from '@prisma/client'
+import path from 'path'
 import 'dotenv/config'
 
 // Schema for environment variables
 const schema = {
   type: 'object',
-  required: ['PORT', 'DATABASE_URL'],
+  required: ['PORT', 'DATABASE_URL', 'JWT_SECRET'],
   properties: {
     PORT: {
       type: 'string',
@@ -21,6 +27,20 @@ const schema = {
     NODE_ENV: {
       type: 'string',
       default: 'development'
+    },
+    JWT_SECRET: {
+      type: 'string'
+    },
+    JWT_REFRESH_SECRET: {
+      type: 'string'
+    },
+    JWT_EXPIRES_IN: {
+      type: 'string',
+      default: '1h'
+    },
+    JWT_REFRESH_EXPIRES_IN: {
+      type: 'string',
+      default: '7d'
     }
   }
 }
@@ -59,12 +79,43 @@ async function buildServer() {
     // Environment variables
     await fastify.register(env, options)
 
+    // Sensible defaults for errors
+    await fastify.register(sensible)
+
+    // JWT authentication
+    await fastify.register(jwt, {
+      secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      sign: {
+        expiresIn: process.env.JWT_EXPIRES_IN || '1h'
+      }
+    })
+
+    // Rate limiting
+    await fastify.register(rateLimit, {
+      max: 100,
+      timeWindow: '15 minutes'
+    })
+
     // CORS
     await fastify.register(cors, {
       origin: process.env.NODE_ENV === 'production'
         ? process.env.FRONTEND_URL
         : true,
       credentials: true
+    })
+
+    // Multipart for file uploads
+    await fastify.register(multipart, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+        files: 10, // Max 10 files
+      }
+    })
+
+    // Static files (for uploaded images)
+    await fastify.register(fastifyStatic, {
+      root: path.join(process.cwd(), 'uploads'),
+      prefix: '/uploads/',
     })
 
     // Swagger Documentation
@@ -83,10 +134,21 @@ async function buildServer() {
           },
         ],
         tags: [
-          { name: 'Health', description: 'Health check endpoints' },
-          { name: 'Users', description: 'User management endpoints' },
-          { name: 'Auth', description: 'Authentication endpoints' },
+          { name: 'health', description: 'Health check endpoints' },
+          { name: 'users', description: 'User management endpoints' },
+          { name: 'auth', description: 'Authentication endpoints' },
+          { name: 'products', description: 'Product management endpoints' },
+          { name: 'orders', description: 'Order management endpoints' },
         ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT'
+            }
+          }
+        },
       },
     })
 
@@ -108,7 +170,12 @@ async function buildServer() {
     // Register routes
     await fastify.register(import('./routes/health'), { prefix: '/api/health' })
     await fastify.register(import('./routes/users'), { prefix: '/api/users' })
-    await fastify.register(import('./routes/auth'), { prefix: '/api/auth' })
+    await fastify.register(import('./routes/auth.simple'), { prefix: '/api/auth' })
+    await fastify.register(import('./routes/products'), { prefix: '/api/products' })
+    await fastify.register(import('./routes/categories'), { prefix: '/api/categories' })
+    await fastify.register(import('./routes/upload'), { prefix: '/api/upload' })
+    await fastify.register(import('./routes/orders'), { prefix: '/api/orders' })
+    await fastify.register(import('./routes/promotions'), { prefix: '/api/promotions' })
 
     // Graceful shutdown
     const closeGracefully = async (signal: string) => {

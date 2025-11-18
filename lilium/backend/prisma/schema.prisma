@@ -10,53 +10,347 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model
+// Enum for user roles
+enum UserRole {
+  SUPER_ADMIN
+  LOCATION_ADMIN
+  SHOP_OWNER
+}
+
+// Enum for order status
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+// Enum for zones in Baghdad
+enum Zone {
+  KARKH
+  RUSAFA
+}
+
+// User model - handles authentication and roles
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  password  String
-  name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  posts     Post[]
-  comments  Comment[]
-  likes     Like[]
+  id               String           @id @default(cuid())
+  email            String           @unique
+  password         String
+  name             String
+  businessName     String?          // For shop owners
+  phone            String?          @unique
+  role             UserRole         @default(SHOP_OWNER)
+  isActive         Boolean          @default(true)
+  emailVerified    Boolean          @default(false)
+  phoneVerified    Boolean          @default(false)
+  zones            Zone[]           // Zones the user has access to
+  refreshToken     String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  otpCode          String?
+  otpExpiry        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  orders           Order[]
+  addresses        Address[]
+  favorites        Favorite[]
+  notifyRequests   NotifyMe[]
+  neededItems      NeededItem[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
 }
 
-// Post model (example)
-model Post {
-  id        String    @id @default(cuid())
-  title     String
-  content   String
-  published Boolean   @default(false)
-  authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  comments  Comment[]
-  likes     Like[]
+// Category model
+model Category {
+  id          String    @id @default(cuid())
+  nameAr      String
+  nameEn      String
+  slug        String    @unique
+  description String?
+  image       String?
+  parentId    String?
+  parent      Category? @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryToCategory")
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  products    Product[]
+
+  @@index([slug])
+  @@index([parentId])
 }
 
-// Comment model (example)
-model Comment {
+// Product model
+model Product {
+  id              String      @id @default(cuid())
+  sku             String      @unique
+  nameAr          String
+  nameEn          String
+  descriptionAr   String?
+  descriptionEn   String?
+  price           Float
+  compareAtPrice  Float?      // Original price before discount
+  cost            Float?      // Cost price for profit calculation
+  stock           Int         @default(0)
+  minOrderQty     Int         @default(1)
+  unit            String      @default("piece") // piece, box, carton, etc.
+  images          String[]    // Array of image URLs
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  zones           Zone[]      // Available zones for this product
+  isActive        Boolean     @default(true)
+  isFeatured      Boolean     @default(false)
+  sortOrder       Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  orderItems      OrderItem[]
+  favorites       Favorite[]
+  notifyRequests  NotifyMe[]
+  neededItems     NeededItem[]
+  promotions      PromotionProduct[]
+  stockHistory    StockHistory[]
+
+  @@index([sku])
+  @@index([categoryId])
+  @@index([nameEn])
+  @@index([nameAr])
+}
+
+// Promotion model
+model Promotion {
+  id            String       @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  descriptionAr String?
+  descriptionEn String?
+  type          String       // percentage, fixed, buy_x_get_y, bundle
+  value         Float        // Discount value
+  minPurchase   Float?       // Minimum purchase amount
+  maxDiscount   Float?       // Maximum discount amount (for percentage)
+  buyQuantity   Int?         // For buy_x_get_y
+  getQuantity   Int?         // For buy_x_get_y
+  startDate     DateTime
+  endDate       DateTime
+  zones         Zone[]       // Applicable zones
+  isActive      Boolean      @default(true)
+  usageLimit    Int?         // Total usage limit
+  usageCount    Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  products      PromotionProduct[]
+  orders        Order[]
+
+  @@index([startDate, endDate])
+  @@index([type])
+}
+
+// Junction table for many-to-many relationship between Promotion and Product
+model PromotionProduct {
+  id          String    @id @default(cuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, productId])
+}
+
+// Address model
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  street        String
+  area          String
+  building      String?
+  floor         String?
+  apartment     String?
+  zone          Zone
+  landmark      String?
+  latitude      Float?
+  longitude     Float?
+  phone         String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  orders        Order[]
+
+  @@index([userId])
+  @@index([zone])
+}
+
+// Order model
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  addressId       String
+  address         Address     @relation(fields: [addressId], references: [id])
+  status          OrderStatus @default(PENDING)
+  subtotal        Float
+  discount        Float       @default(0)
+  deliveryFee     Float       @default(0)
+  total           Float
+  notes           String?
+  promotionId     String?
+  promotion       Promotion?  @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  zone            Zone
+  paymentMethod   String?     // cash, card, etc.
+  paymentStatus   String?     // pending, paid, failed
+  deliveryDate    DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([zone])
+  @@index([createdAt])
+}
+
+// Order Item model
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  nameAr      String   // Store product name at time of order
+  nameEn      String
+  price       Float    // Store price at time of order
+  quantity    Int
+  discount    Float    @default(0)
+  total       Float
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// Order Status History model - tracks order status changes
+model OrderStatusHistory {
+  id          String      @id @default(cuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  comment     String?
+  createdBy   String?     // User ID who changed the status
+  createdAt   DateTime    @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+// Favorite model
+model Favorite {
   id        String   @id @default(cuid())
-  content   String
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Like model (example)
-model Like {
-  id        String   @id @default(cuid())
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  @@unique([postId, userId])
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+// NotifyMe model - for out of stock notifications
+model NotifyMe {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  notified  Boolean  @default(false)
+  notifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@index([notified])
+}
+
+// NeededItem model - items that shops frequently need
+model NeededItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  frequency String?  // weekly, monthly, etc.
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+// Stock History model - tracks stock changes
+model StockHistory {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type        String   // restock, sale, adjustment, return
+  quantity    Int      // Positive for additions, negative for deductions
+  previousStock Int
+  newStock    Int
+  reference   String?  // Order ID or other reference
+  notes       String?
+  createdBy   String?  // User ID who made the change
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Analytics model - for tracking key metrics (optional, can use aggregation queries instead)
+model Analytics {
+  id              String   @id @default(cuid())
+  date            DateTime @unique
+  totalOrders     Int      @default(0)
+  totalSales      Float    @default(0)
+  totalProducts   Int      @default(0)
+  totalUsers      Int      @default(0)
+  avgOrderValue   Float    @default(0)
+  topProductId    String?
+  topCategoryId   String?
+  zone            Zone?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([date])
+  @@index([zone])
 }
