@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { I18nProvider } from "@/providers/i18n-provider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,6 +38,7 @@ export default function RootLayout({
             </AuthProvider>
           </QueryProvider>
         </I18nProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );
