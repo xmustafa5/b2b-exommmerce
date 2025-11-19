@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { UploadService } from '../services/upload.service';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 
 const uploadRoutes: FastifyPluginAsync = async (fastify) => {
@@ -8,7 +8,7 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Upload single file
   fastify.post('/single', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request, reply) => {
     try {
       const data = await request.file();
@@ -34,7 +34,7 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Upload multiple files
   fastify.post('/multiple', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request, reply) => {
     try {
       const files = await request.saveRequestFiles();
@@ -61,7 +61,7 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Delete file
   fastify.delete('/:filename', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const { filename } = request.params;

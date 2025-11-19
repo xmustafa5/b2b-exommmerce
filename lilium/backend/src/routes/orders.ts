@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { OrderService } from '../services/order.service';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole, OrderStatus } from '@prisma/client';
 
 const orderRoutes: FastifyPluginAsync = async (fastify) => {
@@ -42,7 +42,7 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Get order statistics
   fastify.get('/stats', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const { zone } = request.query;
@@ -80,7 +80,7 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Create order (shop owners only)
   fastify.post('/', {
-    preHandler: [authenticate, authorize([UserRole.SHOP_OWNER])],
+    preHandler: [authenticate, requireRole(UserRole.SHOP_OWNER)],
   }, async (request: any, reply) => {
     try {
       const user = request.user;
@@ -99,7 +99,7 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update order status (admin only)
   fastify.put('/:id/status', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;

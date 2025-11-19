@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { CategoryService } from '../services/category.service';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 
 const categoryRoutes: FastifyPluginAsync = async (fastify) => {
@@ -19,7 +19,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Get category stats
   fastify.get('/stats', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const stats = await categoryService.getCategoryStats();
@@ -42,7 +42,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Create category (Admin only)
   fastify.post('/', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const category = await categoryService.createCategory(request.body);
@@ -54,7 +54,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update category (Admin only)
   fastify.put('/:id', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -67,7 +67,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Reorder categories (Admin only)
   fastify.patch('/reorder', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const result = await categoryService.reorderCategories(request.body);
@@ -79,7 +79,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Delete category (Admin only)
   fastify.delete('/:id', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;

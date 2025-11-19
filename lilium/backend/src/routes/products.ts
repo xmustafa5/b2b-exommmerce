@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ProductService } from '../services/product.service';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole, Zone } from '@prisma/client';
 
 const productRoutes: FastifyPluginAsync = async (fastify) => {
@@ -86,7 +86,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Create product (Admin only)
   fastify.post('/', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const product = await productService.createProduct(request.body);
@@ -98,7 +98,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update product (Admin only)
   fastify.put('/:id', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -111,7 +111,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update stock
   fastify.patch('/:id/stock', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -126,7 +126,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Delete product (Admin only)
   fastify.delete('/:id', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -139,7 +139,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Bulk update products (Admin only)
   fastify.patch('/bulk', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { ids, data } = request.body;
@@ -160,7 +160,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Bulk delete products (Admin only)
   fastify.delete('/bulk', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN])]
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)]
   }, async (request: any, reply) => {
     try {
       const { ids } = request.body;

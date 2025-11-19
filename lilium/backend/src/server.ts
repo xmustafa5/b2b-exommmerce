@@ -90,11 +90,11 @@ async function buildServer() {
       }
     })
 
-    // Rate limiting
-    await fastify.register(rateLimit, {
-      max: 100,
-      timeWindow: '15 minutes'
-    })
+    // Rate limiting - DISABLED FOR DEVELOPMENT
+    // await fastify.register(rateLimit, {
+    //   max: 100,
+    //   timeWindow: '15 minutes'
+    // })
 
     // CORS
     await fastify.register(cors, {

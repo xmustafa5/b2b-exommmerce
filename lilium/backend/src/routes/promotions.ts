@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { PromotionService } from '../services/promotion.service';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 
 const promotionRoutes: FastifyPluginAsync = async (fastify) => {
@@ -44,7 +44,7 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Create promotion (admin only)
   fastify.post('/', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const promotion = await promotionService.createPromotion(request.body);
@@ -57,7 +57,7 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update promotion (admin only)
   fastify.put('/:id', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -71,7 +71,7 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Toggle promotion status (admin only)
   fastify.patch('/:id/toggle', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -85,7 +85,7 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Delete promotion (super admin only)
   fastify.delete('/:id', {
-    preHandler: [authenticate, authorize([UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
