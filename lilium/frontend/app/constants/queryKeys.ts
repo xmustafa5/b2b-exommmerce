@@ -20,6 +20,7 @@ export const ordersQueryKeys = {
   list: (filters?: any) => [...ordersQueryKeys.lists(), filters] as const,
   details: () => [...ordersQueryKeys.all, "detail"] as const,
   detail: (id: string) => [...ordersQueryKeys.details(), id] as const,
+  stats: (zone?: string) => [...ordersQueryKeys.all, "stats", zone] as const,
 };
 
 export const usersQueryKeys = {
