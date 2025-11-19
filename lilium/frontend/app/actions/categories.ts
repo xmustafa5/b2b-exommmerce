@@ -16,34 +16,78 @@ export const categoriesApi = {
       params.append('isActive', String(filters.isActive));
     }
 
-    const { data } = await apiClient.get<Category[]>(
+    const { data } = await apiClient.get<any[]>(
       `/categories?${params.toString()}`
     );
-    return data;
+
+    // Transform backend response to frontend format
+    return data.map((category: any) => ({
+      ...category,
+      name: category.nameEn,
+      description: category.descriptionEn,
+      order: category.sortOrder || 0,
+    }));
   },
 
   /**
    * Get a single category by ID
    */
   getById: async (id: string): Promise<Category> => {
-    const { data } = await apiClient.get<Category>(`/categories/${id}`);
-    return data;
+    const { data } = await apiClient.get<any>(`/categories/${id}`);
+    return {
+      ...data,
+      name: data.nameEn,
+      description: data.descriptionEn,
+      order: data.sortOrder || 0,
+    };
   },
 
   /**
    * Create a new category
    */
   create: async (input: CategoryCreateInput): Promise<Category> => {
-    const { data } = await apiClient.post<Category>('/categories', input);
-    return data;
+    // Transform frontend format to backend format
+    const backendInput = {
+      ...input,
+      nameEn: input.name,
+      descriptionEn: input.description,
+      sortOrder: input.order,
+      name: undefined,
+      description: undefined,
+      order: undefined,
+    };
+
+    const { data } = await apiClient.post<any>('/categories', backendInput);
+    return {
+      ...data,
+      name: data.nameEn,
+      description: data.descriptionEn,
+      order: data.sortOrder || 0,
+    };
   },
 
   /**
    * Update an existing category
    */
   update: async (id: string, input: CategoryUpdateInput): Promise<Category> => {
-    const { data } = await apiClient.put<Category>(`/categories/${id}`, input);
-    return data;
+    // Transform frontend format to backend format
+    const backendInput = {
+      ...input,
+      nameEn: input.name,
+      descriptionEn: input.description,
+      sortOrder: input.order,
+      name: undefined,
+      description: undefined,
+      order: undefined,
+    };
+
+    const { data } = await apiClient.put<any>(`/categories/${id}`, backendInput);
+    return {
+      ...data,
+      name: data.nameEn,
+      description: data.descriptionEn,
+      order: data.sortOrder || 0,
+    };
   },
 
   /**

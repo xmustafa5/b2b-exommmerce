@@ -26,34 +26,82 @@ export const productsApi = {
     if (filters?.sortBy) params.append('sortBy', filters.sortBy);
     if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
 
-    const { data } = await apiClient.get<ProductsResponse>(
-      `/products?${params.toString()}`
-    );
-    return data;
+    const { data } = await apiClient.get<{
+      products: any[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/products?${params.toString()}`);
+
+    // Transform backend response to frontend format
+    return {
+      data: data.products.map((product: any) => ({
+        ...product,
+        name: product.nameEn,
+        description: product.descriptionEn,
+      })),
+      page: data.pagination.page,
+      pageSize: data.pagination.limit,
+      total: data.pagination.total,
+      totalPages: data.pagination.totalPages,
+    };
   },
 
   /**
    * Get a single product by ID
    */
   getById: async (id: string): Promise<Product> => {
-    const { data } = await apiClient.get<Product>(`/products/${id}`);
-    return data;
+    const { data } = await apiClient.get<any>(`/products/${id}`);
+    return {
+      ...data,
+      name: data.nameEn,
+      description: data.descriptionEn,
+    };
   },
 
   /**
    * Create a new product
    */
   create: async (input: ProductCreateInput): Promise<Product> => {
-    const { data } = await apiClient.post<Product>('/products', input);
-    return data;
+    // Transform frontend format to backend format
+    const backendInput = {
+      ...input,
+      nameEn: input.name,
+      descriptionEn: input.description,
+      name: undefined,
+      description: undefined,
+    };
+
+    const { data } = await apiClient.post<any>('/products', backendInput);
+    return {
+      ...data,
+      name: data.nameEn,
+      description: data.descriptionEn,
+    };
   },
 
   /**
    * Update an existing product
    */
   update: async (id: string, input: ProductUpdateInput): Promise<Product> => {
-    const { data } = await apiClient.put<Product>(`/products/${id}`, input);
-    return data;
+    // Transform frontend format to backend format
+    const backendInput = {
+      ...input,
+      nameEn: input.name,
+      descriptionEn: input.description,
+      name: undefined,
+      description: undefined,
+    };
+
+    const { data } = await apiClient.put<any>(`/products/${id}`, backendInput);
+    return {
+      ...data,
+      name: data.nameEn,
+      description: data.descriptionEn,
+    };
   },
 
   /**

@@ -104,16 +104,16 @@ export default function OrdersPage() {
 
             {/* Status Filter */}
             <Select
-              value={filters.status || 'all'}
+              value={filters.status ?? 'ALL'}
               onValueChange={(value) =>
-                handleFilterChange('status', value === 'all' ? undefined : value)
+                handleFilterChange('status', value === 'ALL' ? undefined : value)
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="ALL">All Statuses</SelectItem>
                 <SelectItem value={OrderStatus.PENDING}>Pending</SelectItem>
                 <SelectItem value={OrderStatus.CONFIRMED}>Confirmed</SelectItem>
                 <SelectItem value={OrderStatus.PROCESSING}>
@@ -127,16 +127,16 @@ export default function OrdersPage() {
 
             {/* Zone Filter */}
             <Select
-              value={filters.zone || 'all'}
+              value={filters.zone ?? 'ALL'}
               onValueChange={(value) =>
-                handleFilterChange('zone', value === 'all' ? undefined : value)
+                handleFilterChange('zone', value === 'ALL' ? undefined : value)
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Zones" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Zones</SelectItem>
+                <SelectItem value="ALL">All Zones</SelectItem>
                 <SelectItem value="North">North</SelectItem>
                 <SelectItem value="South">South</SelectItem>
                 <SelectItem value="East">East</SelectItem>

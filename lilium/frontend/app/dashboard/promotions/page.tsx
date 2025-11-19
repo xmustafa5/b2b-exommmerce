@@ -54,15 +54,15 @@ import type { Promotion, PromotionStatus } from "@/app/types/promotion";
 export default function PromotionsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [zone, setZone] = useState<string>("");
-  const [type, setType] = useState<string>("");
+  const [zone, setZone] = useState<string>("ALL");
+  const [type, setType] = useState<string>("ALL");
   const [activeTab, setActiveTab] = useState<PromotionStatus>("active");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = usePromotions({
     status: activeTab,
-    zone: zone || undefined,
-    type: type as any,
+    zone: zone === "ALL" ? undefined : zone,
+    type: type === "ALL" ? undefined : (type as any),
     search: search || undefined,
   });
 
@@ -150,7 +150,7 @@ export default function PromotionsPage() {
             <SelectValue placeholder="All Zones" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Zones</SelectItem>
+            <SelectItem value="ALL">All Zones</SelectItem>
             <SelectItem value="north">North</SelectItem>
             <SelectItem value="south">South</SelectItem>
             <SelectItem value="east">East</SelectItem>
@@ -163,7 +163,7 @@ export default function PromotionsPage() {
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="ALL">All Types</SelectItem>
             <SelectItem value="percentage">Percentage</SelectItem>
             <SelectItem value="fixed">Fixed Amount</SelectItem>
           </SelectContent>

@@ -24,14 +24,14 @@ import type { Product } from "@/app/types/product";
 export default function ProductsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: productsData, isLoading } = useProducts({
     search,
-    categoryId: categoryFilter || undefined,
+    categoryId: categoryFilter === "ALL" ? undefined : categoryFilter,
     page,
     pageSize: 10,
   });
@@ -183,7 +183,7 @@ export default function ProductsPage() {
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Categories</SelectItem>
+            <SelectItem value="ALL">All Categories</SelectItem>
             {categories?.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
@@ -203,7 +203,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Select All */}
-      {productsData && productsData.data.length > 0 && (
+      {productsData && productsData.data?.length > 0 && (
         <div className="flex items-center gap-2">
           <Checkbox
             checked={selectedProducts.length === productsData.data.length}
@@ -222,11 +222,11 @@ export default function ProductsPage() {
         pagination={
           productsData
             ? {
-                page: productsData.page,
-                pageSize: productsData.pageSize,
-                total: productsData.total,
-                totalPages: productsData.totalPages,
-              }
+              page: productsData.page,
+              pageSize: productsData.pageSize,
+              total: productsData.total,
+              totalPages: productsData.totalPages,
+            }
             : undefined
         }
         onPageChange={setPage}

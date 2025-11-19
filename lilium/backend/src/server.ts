@@ -96,12 +96,13 @@ async function buildServer() {
     //   timeWindow: '15 minutes'
     // })
 
-    // CORS
+    // CORS - Allow all for development
     await fastify.register(cors, {
-      origin: process.env.NODE_ENV === 'production'
-        ? process.env.FRONTEND_URL
-        : true,
-      credentials: true
+      origin: true, // Allow all origins
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      exposedHeaders: ['Content-Length', 'X-Request-Id']
     })
 
     // Multipart for file uploads
