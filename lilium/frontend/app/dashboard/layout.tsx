@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   LogOut,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,11 @@ const navigation = [
     name: "Products",
     href: "/dashboard/products",
     icon: Package,
+  },
+  {
+    name: "Promotions",
+    href: "/dashboard/promotions",
+    icon: Tag,
   },
   {
     name: "Categories",

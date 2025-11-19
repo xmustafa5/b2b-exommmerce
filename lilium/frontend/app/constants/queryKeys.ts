@@ -41,3 +41,14 @@ export const dashboardQueryKeys = {
   recentOrders: ["dashboard", "recent-orders"] as const,
   topProducts: ["dashboard", "top-products"] as const,
 };
+
+export const promotionsQueryKeys = {
+  all: ["promotions"] as const,
+  lists: () => [...promotionsQueryKeys.all, "list"] as const,
+  list: (filters?: any) => [...promotionsQueryKeys.lists(), filters] as const,
+  details: () => [...promotionsQueryKeys.all, "detail"] as const,
+  detail: (id: string) => [...promotionsQueryKeys.details(), id] as const,
+  active: (zone?: string) => [...promotionsQueryKeys.all, "active", zone] as const,
+  upcoming: () => [...promotionsQueryKeys.all, "upcoming"] as const,
+  expired: () => [...promotionsQueryKeys.all, "expired"] as const,
+};
