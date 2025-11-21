@@ -2,10 +2,7 @@ import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
 import { User, UserRole, Zone, Prisma } from '@prisma/client';
 import {
-  RegisterInput,
-  MobileRegisterInput,
   LoginInput,
-  OtpLoginInput,
   JWTPayload,
   JWTTokens,
   RequestPasswordResetInput,
@@ -18,88 +15,10 @@ export class AuthService {
   constructor(private fastify: FastifyInstance) {}
 
   /**
-   * Register a new user
+   * Dashboard Login - For VENDOR, COMPANY_MANAGER, ADMIN, and SUPER_ADMIN roles
+   * Users are created by admin/super-admin through dashboard
    */
-  async register(data: RegisterInput): Promise<{ user: Partial<User>; tokens: JWTTokens }> {
-    const { password, zones = [], ...userData } = data;
-
-    // Check if user already exists
-    const existingUser = await this.fastify.prisma.user.findUnique({
-      where: { email: userData.email },
-    });
-
-    if (existingUser) {
-      throw this.fastify.httpErrors.conflict('User with this email already exists');
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await this.fastify.prisma.user.create({
-      data: {
-        ...userData,
-        password: hashedPassword,
-        zones: zones as Zone[],
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        businessName: true,
-        phone: true,
-        role: true,
-        zones: true,
-        createdAt: true,
-      },
-    });
-
-    // Generate tokens
-    const tokens = await this.generateTokens(user);
-
-    // Save refresh token
-    await this.fastify.prisma.user.update({
-      where: { id: user.id },
-      data: { refreshToken: tokens.refreshToken },
-    });
-
-    return { user, tokens };
-  }
-
-  /**
-   * Register a new shop owner (mobile)
-   */
-  async registerMobile(data: MobileRegisterInput): Promise<{ user: Partial<User>; tokens: JWTTokens }> {
-    const { address, zone, ...registerData } = data;
-
-    // Register user with SHOP_OWNER role
-    const result = await this.register({
-      ...registerData,
-      role: UserRole.SHOP_OWNER,
-      zones: [zone],
-    });
-
-    // Create default address if provided
-    if (address && result.user.id) {
-      await this.fastify.prisma.address.create({
-        data: {
-          userId: result.user.id,
-          name: 'Default',
-          ...address,
-          zone,
-          phone: data.phone || '',
-          isDefault: true,
-        },
-      });
-    }
-
-    return result;
-  }
-
-  /**
-   * Login user with email and password
-   */
-  async login(data: LoginInput): Promise<{ user: Partial<User>; tokens: JWTTokens }> {
+  async loginDashboard(data: LoginInput): Promise<{ user: Partial<User>; tokens: JWTTokens }> {
     const { email, password } = data;
 
     // Find user
@@ -115,11 +34,24 @@ export class AuthService {
         role: true,
         zones: true,
         isActive: true,
+        companyId: true,
       },
     });
 
     if (!user) {
       throw this.fastify.httpErrors.unauthorized('Invalid email or password');
+    }
+
+    // Verify user has dashboard access (VENDOR, COMPANY_MANAGER, ADMIN, SUPER_ADMIN)
+    const dashboardRoles: UserRole[] = [
+      UserRole.VENDOR,
+      UserRole.COMPANY_MANAGER,
+      UserRole.ADMIN,
+      UserRole.SUPER_ADMIN
+    ];
+
+    if (!dashboardRoles.includes(user.role)) {
+      throw this.fastify.httpErrors.forbidden('You do not have access to the dashboard. Please use the mobile app.');
     }
 
     if (!user.isActive) {
@@ -147,85 +79,46 @@ export class AuthService {
   }
 
   /**
-   * Send OTP to phone number
+   * Mobile Login - For SHOP_OWNER role only
+   * Shop owners are created directly in database or through admin dashboard
    */
-  async sendOtp(phone: string): Promise<void> {
-    // Find or create user with phone
-    let user = await this.fastify.prisma.user.findUnique({
-      where: { phone },
-    });
-
-    if (!user) {
-      throw this.fastify.httpErrors.notFound('User with this phone number not found');
-    }
-
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-    // Save OTP
-    await this.fastify.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        otpCode: otp,
-        otpExpiry,
-      },
-    });
-
-    // TODO: Send OTP via SMS service (Twilio, etc.)
-    // For development, log the OTP
-    this.fastify.log.info(`OTP for ${phone}: ${otp}`);
-  }
-
-  /**
-   * Login with OTP
-   */
-  async loginWithOtp(data: OtpLoginInput): Promise<{ user: Partial<User>; tokens: JWTTokens }> {
-    const { phone, otp } = data;
+  async loginMobile(data: LoginInput): Promise<{ user: Partial<User>; tokens: JWTTokens }> {
+    const { email, password } = data;
 
     // Find user
     const user = await this.fastify.prisma.user.findUnique({
-      where: { phone },
+      where: { email },
       select: {
         id: true,
         email: true,
+        password: true,
         name: true,
         businessName: true,
         phone: true,
         role: true,
         zones: true,
         isActive: true,
-        otpCode: true,
-        otpExpiry: true,
       },
     });
 
     if (!user) {
-      throw this.fastify.httpErrors.unauthorized('Invalid phone or OTP');
+      throw this.fastify.httpErrors.unauthorized('Invalid email or password');
+    }
+
+    // Verify user is a SHOP_OWNER (mobile user)
+    if (user.role !== UserRole.SHOP_OWNER) {
+      throw this.fastify.httpErrors.forbidden('You do not have access to the mobile app. Please use the dashboard.');
     }
 
     if (!user.isActive) {
       throw this.fastify.httpErrors.forbidden('Account is deactivated');
     }
 
-    // Verify OTP
-    if (!user.otpCode || user.otpCode !== otp) {
-      throw this.fastify.httpErrors.unauthorized('Invalid OTP');
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      throw this.fastify.httpErrors.unauthorized('Invalid email or password');
     }
-
-    if (!user.otpExpiry || user.otpExpiry < new Date()) {
-      throw this.fastify.httpErrors.unauthorized('OTP has expired');
-    }
-
-    // Clear OTP
-    await this.fastify.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        otpCode: null,
-        otpExpiry: null,
-        phoneVerified: true,
-      },
-    });
 
     // Generate tokens
     const tokens = await this.generateTokens(user);
@@ -236,9 +129,9 @@ export class AuthService {
       data: { refreshToken: tokens.refreshToken },
     });
 
-    // Remove sensitive data
-    const { otpCode, otpExpiry, ...userWithoutOtp } = user;
-    return { user: userWithoutOtp, tokens };
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword, tokens };
   }
 
   /**

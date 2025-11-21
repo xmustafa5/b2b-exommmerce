@@ -59,7 +59,7 @@ const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 })
 
-// Create Fastify instance
+// Create Fastify instance with updated auth
 const fastify = Fastify({
   logger: {
     level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
@@ -223,6 +223,20 @@ async function buildServer() {
     await fastify.register(import('./routes/orders'), { prefix: '/api/orders' })
     await fastify.register(import('./routes/promotions'), { prefix: '/api/promotions' })
 
+    // Phase 5: Vendor/Company Management Routes
+    await fastify.register(import('./routes/vendors'), { prefix: '/api/vendors' })
+    await fastify.register(import('./routes/cart'), { prefix: '/api/cart' })
+    await fastify.register(import('./routes/companies'), { prefix: '/api/companies' })
+    await fastify.register(import('./routes/analytics'), { prefix: '/api/analytics' })
+    await fastify.register(import('./routes/payouts'), { prefix: '/api/payouts' })
+
+    // Phase 6: Order Fulfillment & Delivery Routes
+    await fastify.register(import('./routes/delivery'), { prefix: '/api/delivery' })
+    await fastify.register(import('./routes/settlements'), { prefix: '/api/settlements' })
+
+    // Internal API for Lilium team to manage users
+    await fastify.register(import('./routes/internal'), { prefix: '/api/internal' })
+
     // Graceful shutdown
     const closeGracefully = async (signal: string) => {
       fastify.log.info(`Received signal: ${signal}`)
@@ -267,4 +281,5 @@ declare module 'fastify' {
   }
 }
 
+// Start server
 start()

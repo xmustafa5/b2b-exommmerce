@@ -38,6 +38,24 @@ export function requireRole(...roles: UserRole[]) {
 }
 
 /**
+ * Authorize - alias for requireRole for backward compatibility
+ */
+export function authorize(roles: UserRole[]) {
+  return async function (request: FastifyRequest, reply: FastifyReply) {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    if (!roles.includes(request.user.role)) {
+      return reply.code(403).send({
+        error: 'Forbidden',
+        message: `Access denied. Required role: ${roles.join(' or ')}`
+      });
+    }
+  };
+}
+
+/**
  * Check if user has access to specific zone
  */
 export function requireZone(...zones: Zone[]) {
