@@ -4,6 +4,8 @@ import env from '@fastify/env'
 import jwt from '@fastify/jwt'
 import sensible from '@fastify/sensible'
 import rateLimit from '@fastify/rate-limit'
+import helmet from '@fastify/helmet'
+import compress from '@fastify/compress'
 import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
 import multipart from '@fastify/multipart'
@@ -82,6 +84,27 @@ async function buildServer() {
     // Sensible defaults for errors
     await fastify.register(sensible)
 
+    // Security headers with Helmet
+    await fastify.register(helmet, {
+      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          fontSrc: ["'self'", "data:"],
+        }
+      } : false, // Disable CSP in development for Swagger UI
+      crossOriginEmbedderPolicy: false, // Allow embedding for development
+    })
+
+    // Response compression
+    await fastify.register(compress, {
+      global: true,
+      threshold: 1024, // Only compress responses larger than 1KB
+      encodings: ['gzip', 'deflate'],
+    })
+
     // JWT authentication
     await fastify.register(jwt, {
       secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
@@ -90,11 +113,33 @@ async function buildServer() {
       }
     })
 
-    // Rate limiting - DISABLED FOR DEVELOPMENT
-    // await fastify.register(rateLimit, {
-    //   max: 100,
-    //   timeWindow: '15 minutes'
-    // })
+    // Rate limiting - Properly configured
+    await fastify.register(rateLimit, {
+      global: true,
+      max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit in development
+      timeWindow: '15 minutes',
+      cache: 10000, // Cache up to 10000 rate limit objects
+      addHeaders: {
+        'x-ratelimit-limit': true,
+        'x-ratelimit-remaining': true,
+        'x-ratelimit-reset': true,
+        'retry-after': true
+      },
+      skipOnError: true, // Don't apply rate limiting if there's an error
+      keyGenerator: (request) => {
+        // Use IP + user ID if authenticated, otherwise just IP
+        const userId = (request as any).user?.id
+        return userId ? `${request.ip}-${userId}` : request.ip
+      },
+      errorResponseBuilder: (request, context) => {
+        return {
+          error: 'Too Many Requests',
+          message: `You have exceeded the ${context.max} requests in ${context.after} limit!`,
+          date: Date.now(),
+          expiresIn: context.ttl
+        }
+      }
+    })
 
     // CORS - Allow all for development
     await fastify.register(cors, {

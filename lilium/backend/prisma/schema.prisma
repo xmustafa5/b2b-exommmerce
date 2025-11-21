@@ -14,6 +14,8 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   LOCATION_ADMIN
+  COMPANY_ADMIN  // Admin of a company/vendor
+  COMPANY_USER   // Employee of a company
   SHOP_OWNER
 }
 
@@ -34,6 +36,31 @@ enum Zone {
   RUSAFA
 }
 
+// Company model - represents vendors/suppliers
+model Company {
+  id            String   @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  description   String?
+  logo          String?
+  email         String?
+  phone         String?
+  address       String?
+  zones         Zone[]   // Zones where company operates
+  isActive      Boolean  @default(true)
+  commission    Float    @default(0) // Platform commission percentage
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  users         User[]
+  products      Product[]
+  orders        Order[]
+
+  @@index([nameEn])
+  @@index([nameAr])
+}
+
 // User model - handles authentication and roles
 model User {
   id               String           @id @default(cuid())
@@ -43,6 +70,8 @@ model User {
   businessName     String?          // For shop owners
   phone            String?          @unique
   role             UserRole         @default(SHOP_OWNER)
+  companyId        String?          // Link to company for COMPANY_ADMIN and COMPANY_USER
+  company          Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
   isActive         Boolean          @default(true)
   emailVerified    Boolean          @default(false)
   phoneVerified    Boolean          @default(false)
@@ -65,6 +94,7 @@ model User {
   @@index([email])
   @@index([phone])
   @@index([role])
+  @@index([companyId])
 }
 
 // Category model
@@ -79,7 +109,7 @@ model Category {
   parent      Category? @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
   children    Category[] @relation("CategoryToCategory")
   isActive    Boolean   @default(true)
-  sortOrder   Int       @default(0)
+  displayOrder Int      @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -107,6 +137,8 @@ model Product {
   images          String[]    // Array of image URLs
   categoryId      String
   category        Category    @relation(fields: [categoryId], references: [id])
+  companyId       String      // Product belongs to a company
+  company         Company     @relation(fields: [companyId], references: [id])
   zones           Zone[]      // Available zones for this product
   isActive        Boolean     @default(true)
   isFeatured      Boolean     @default(false)
@@ -204,6 +236,8 @@ model Order {
   user            User        @relation(fields: [userId], references: [id])
   addressId       String
   address         Address     @relation(fields: [addressId], references: [id])
+  companyId       String      // Order belongs to a specific company
+  company         Company     @relation(fields: [companyId], references: [id])
   status          OrderStatus @default(PENDING)
   subtotal        Float
   discount        Float       @default(0)
