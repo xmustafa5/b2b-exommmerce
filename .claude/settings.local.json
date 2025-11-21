@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Process -Force\")",
+      "Bash(node scripts/create-lilium-account.js:*)",
+      "Bash(cmd /c \"taskkill /PID 24304 /F\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
