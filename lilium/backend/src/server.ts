@@ -169,8 +169,8 @@ async function buildServer() {
       openapi: {
         openapi: '3.0.0',
         info: {
-          title: 'Lilium Backend API',
-          description: 'Backend API for Lilium application',
+          title: 'Lilium B2B E-commerce API',
+          description: 'Complete API documentation for Lilium B2B multi-vendor platform with cash-on-delivery system',
           version: '1.0.0',
         },
         servers: [
@@ -181,10 +181,20 @@ async function buildServer() {
         ],
         tags: [
           { name: 'health', description: 'Health check endpoints' },
-          { name: 'users', description: 'User management endpoints' },
           { name: 'auth', description: 'Authentication endpoints' },
           { name: 'products', description: 'Product management endpoints' },
+          { name: 'categories', description: 'Category management endpoints' },
           { name: 'orders', description: 'Order management endpoints' },
+          { name: 'promotions', description: 'Promotion management endpoints' },
+          { name: 'companies', description: 'Company management endpoints' },
+          { name: 'vendors', description: 'Vendor operations endpoints' },
+          { name: 'cart', description: 'Shopping cart endpoints' },
+          { name: 'delivery', description: 'Delivery and fulfillment endpoints' },
+          { name: 'settlements', description: 'Settlement management endpoints' },
+          { name: 'analytics', description: 'Analytics and reporting endpoints' },
+          { name: 'payouts', description: 'Payout management endpoints' },
+          { name: 'upload', description: 'File upload endpoints' },
+          { name: 'internal', description: 'Internal system endpoints' },
         ],
         components: {
           securitySchemes: {
@@ -215,7 +225,6 @@ async function buildServer() {
 
     // Register routes
     await fastify.register(import('./routes/health'), { prefix: '/api/health' })
-    await fastify.register(import('./routes/users'), { prefix: '/api/users' })
     await fastify.register(import('./routes/auth.simple'), { prefix: '/api/auth' })
     await fastify.register(import('./routes/products'), { prefix: '/api/products' })
     await fastify.register(import('./routes/categories'), { prefix: '/api/categories' })

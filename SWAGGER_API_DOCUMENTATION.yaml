@@ -1,0 +1,2007 @@
+openapi: 3.0.0
+info:
+  title: Lilium B2B E-commerce Backend API
+  description: Complete API documentation for the Lilium B2B multi-vendor platform with cash-on-delivery system
+  version: 1.0.0
+  contact:
+    name: Lilium API Support
+    email: support@lilium.iq
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.lilium.iq/api
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [SUPER_ADMIN, ADMIN, LOCATION_ADMIN, COMPANY_MANAGER, VENDOR, SHOP_OWNER]
+        address:
+          type: string
+        zone:
+          type: string
+          enum: [KARKH, RUSAFA, KADHMIYA, ADHAMIYA, SADR_CITY, NEW_BAGHDAD, MANSOUR, KARRADA]
+        companyId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        sku:
+          type: string
+        nameAr:
+          type: string
+        nameEn:
+          type: string
+        descriptionAr:
+          type: string
+        descriptionEn:
+          type: string
+        price:
+          type: number
+        compareAtPrice:
+          type: number
+        cost:
+          type: number
+        stock:
+          type: integer
+        minOrderQty:
+          type: integer
+        unit:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        categoryId:
+          type: string
+        companyId:
+          type: string
+        zones:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        isFeatured:
+          type: boolean
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, PREPARING, ON_THE_WAY, DELIVERED, CANCELLED, COMPLETED, REFUNDED]
+        totalAmount:
+          type: number
+        subtotal:
+          type: number
+        deliveryFee:
+          type: number
+        discount:
+          type: number
+        paymentMethod:
+          type: string
+          enum: [CASH_ON_DELIVERY]
+        paymentStatus:
+          type: string
+          enum: [PENDING, PAID, FAILED]
+        deliveryAddress:
+          type: string
+        zone:
+          type: string
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+        subtotal:
+          type: number
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nameAr:
+          type: string
+        nameEn:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        zones:
+          type: array
+          items:
+            type: string
+        commissionRate:
+          type: number
+        minOrderAmount:
+          type: number
+        isActive:
+          type: boolean
+        logo:
+          type: string
+        deliveryFees:
+          type: object
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        nameAr:
+          type: string
+        nameEn:
+          type: string
+        slug:
+          type: string
+        parentId:
+          type: string
+        sortOrder:
+          type: integer
+        isActive:
+          type: boolean
+
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        nameAr:
+          type: string
+        nameEn:
+          type: string
+        type:
+          type: string
+          enum: [PERCENTAGE, FIXED_AMOUNT]
+        value:
+          type: number
+        maxDiscount:
+          type: number
+        minPurchase:
+          type: number
+        targetType:
+          type: string
+          enum: [ALL, PRODUCT, CATEGORY]
+        zones:
+          type: array
+          items:
+            type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+
+paths:
+  # ==================== HEALTH CHECK ====================
+  /health:
+    get:
+      tags: [Health]
+      summary: Check API health status
+      security: []
+      responses:
+        200:
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+    head:
+      tags: [Health]
+      summary: Quick health check
+      security: []
+      responses:
+        200:
+          description: API is healthy
+
+  # ==================== AUTHENTICATION ====================
+  /auth/login/dashboard:
+    post:
+      tags: [Authentication]
+      summary: Dashboard login for vendors and admins
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: vendor@test.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+                  tokens:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        401:
+          description: Invalid credentials
+        403:
+          description: User doesn't have dashboard access
+
+  /auth/login/mobile:
+    post:
+      tags: [Authentication]
+      summary: Mobile login for shop owners
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login successful
+        401:
+          description: Invalid credentials
+        403:
+          description: User doesn't have mobile access
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user profile
+      responses:
+        200:
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: Unauthorized
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout user
+      responses:
+        200:
+          description: Logged out successfully
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        200:
+          description: Token refreshed
+
+  /auth/password/request-reset:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        200:
+          description: Reset email sent
+
+  /auth/password/reset:
+    post:
+      tags: [Authentication]
+      summary: Reset password with token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        200:
+          description: Password reset successfully
+
+  # ==================== USERS ====================
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of users
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: User details
+        404:
+          description: User not found
+
+    put:
+      tags: [Users]
+      summary: Update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+      responses:
+        200:
+          description: User updated
+
+    delete:
+      tags: [Users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: User deleted
+
+  # ==================== PRODUCTS ====================
+  /products:
+    get:
+      tags: [Products]
+      summary: List products with filters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: zone
+          in: query
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: inStock
+          in: query
+          schema:
+            type: boolean
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price_asc, price_desc, name_asc, name_desc, created_desc]
+      responses:
+        200:
+          description: List of products
+
+    post:
+      tags: [Products]
+      summary: Create new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku, nameAr, nameEn, price, stock, categoryId]
+              properties:
+                sku:
+                  type: string
+                nameAr:
+                  type: string
+                nameEn:
+                  type: string
+                descriptionAr:
+                  type: string
+                descriptionEn:
+                  type: string
+                price:
+                  type: number
+                compareAtPrice:
+                  type: number
+                cost:
+                  type: number
+                stock:
+                  type: integer
+                minOrderQty:
+                  type: integer
+                unit:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                categoryId:
+                  type: string
+                zones:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: Product created
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Get product details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Product details
+        404:
+          description: Product not found
+
+    put:
+      tags: [Products]
+      summary: Update product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        200:
+          description: Product updated
+
+    delete:
+      tags: [Products]
+      summary: Delete product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Product deleted
+
+  /products/featured:
+    get:
+      tags: [Products]
+      summary: Get featured products
+      responses:
+        200:
+          description: Featured products list
+
+  /products/search:
+    get:
+      tags: [Products]
+      summary: Search products
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Search results
+
+  /products/{id}/stock:
+    patch:
+      tags: [Products]
+      summary: Update product stock
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stock:
+                  type: integer
+                operation:
+                  type: string
+                  enum: [set, increment, decrement]
+      responses:
+        200:
+          description: Stock updated
+
+  # ==================== CATEGORIES ====================
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List all categories
+      parameters:
+        - name: tree
+          in: query
+          schema:
+            type: boolean
+            description: Return as tree structure
+      responses:
+        200:
+          description: List of categories
+
+    post:
+      tags: [Categories]
+      summary: Create category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nameAr, nameEn]
+              properties:
+                nameAr:
+                  type: string
+                nameEn:
+                  type: string
+                parentId:
+                  type: string
+                sortOrder:
+                  type: integer
+      responses:
+        201:
+          description: Category created
+
+  /categories/{id}:
+    get:
+      tags: [Categories]
+      summary: Get category details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Category details
+
+    put:
+      tags: [Categories]
+      summary: Update category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        200:
+          description: Category updated
+
+    delete:
+      tags: [Categories]
+      summary: Delete category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: reassignTo
+          in: query
+          schema:
+            type: string
+            description: Category ID to reassign products to
+      responses:
+        200:
+          description: Category deleted
+
+  /categories/{id}/products:
+    get:
+      tags: [Categories]
+      summary: Get products in category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Products in category
+
+  /categories/reorder:
+    patch:
+      tags: [Categories]
+      summary: Reorder categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  sortOrder:
+                    type: integer
+      responses:
+        200:
+          description: Categories reordered
+
+  # ==================== ORDERS ====================
+  /orders:
+    get:
+      tags: [Orders]
+      summary: List orders
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: List of orders
+
+    post:
+      tags: [Orders]
+      summary: Create new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, deliveryAddress, zone]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
+                deliveryAddress:
+                  type: string
+                zone:
+                  type: string
+                notes:
+                  type: string
+                promotionCode:
+                  type: string
+      responses:
+        201:
+          description: Order created
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Order details
+
+  /orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Update order status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ACCEPTED, PREPARING, ON_THE_WAY, DELIVERED, CANCELLED]
+      responses:
+        200:
+          description: Status updated
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        200:
+          description: Order cancelled
+
+  /orders/stats:
+    get:
+      tags: [Orders]
+      summary: Get order statistics
+      responses:
+        200:
+          description: Order statistics
+
+  # ==================== PROMOTIONS ====================
+  /promotions:
+    get:
+      tags: [Promotions]
+      summary: List promotions
+      parameters:
+        - name: active
+          in: query
+          schema:
+            type: boolean
+        - name: zone
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of promotions
+
+    post:
+      tags: [Promotions]
+      summary: Create promotion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Promotion'
+      responses:
+        201:
+          description: Promotion created
+
+  /promotions/{id}:
+    get:
+      tags: [Promotions]
+      summary: Get promotion details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Promotion details
+
+    put:
+      tags: [Promotions]
+      summary: Update promotion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Promotion'
+      responses:
+        200:
+          description: Promotion updated
+
+    delete:
+      tags: [Promotions]
+      summary: Delete promotion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Promotion deleted
+
+  /promotions/validate:
+    post:
+      tags: [Promotions]
+      summary: Validate promotion code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                cartTotal:
+                  type: number
+                zone:
+                  type: string
+      responses:
+        200:
+          description: Promotion valid
+
+  /promotions/apply:
+    post:
+      tags: [Promotions]
+      summary: Apply promotion to cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                promotionCode:
+                  type: string
+                cartItems:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        200:
+          description: Promotion applied
+
+  # ==================== COMPANIES ====================
+  /companies:
+    get:
+      tags: [Companies]
+      summary: List companies
+      security: []
+      parameters:
+        - name: zone
+          in: query
+          schema:
+            type: string
+        - name: active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: List of companies
+
+    post:
+      tags: [Companies]
+      summary: Create company (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Company'
+      responses:
+        201:
+          description: Company created
+
+  /companies/{id}:
+    get:
+      tags: [Companies]
+      summary: Get company details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Company details
+
+    put:
+      tags: [Companies]
+      summary: Update company
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Company'
+      responses:
+        200:
+          description: Company updated
+
+  /companies/{id}/stats:
+    get:
+      tags: [Companies]
+      summary: Get company statistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Company statistics
+
+  /companies/{id}/products:
+    get:
+      tags: [Companies]
+      summary: Get company products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Company products
+
+  # ==================== VENDORS ====================
+  /vendors/dashboard:
+    get:
+      tags: [Vendors]
+      summary: Get vendor dashboard statistics
+      responses:
+        200:
+          description: Dashboard statistics
+
+  /vendors/products:
+    get:
+      tags: [Vendors]
+      summary: List vendor products
+      responses:
+        200:
+          description: Vendor products
+
+    post:
+      tags: [Vendors]
+      summary: Create vendor product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        201:
+          description: Product created
+
+  /vendors/orders:
+    get:
+      tags: [Vendors]
+      summary: List vendor orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Vendor orders
+
+  /vendors/customers:
+    get:
+      tags: [Vendors]
+      summary: List vendor customers
+      responses:
+        200:
+          description: Vendor customers
+
+  /vendors/statistics:
+    get:
+      tags: [Vendors]
+      summary: Get vendor statistics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, year]
+      responses:
+        200:
+          description: Vendor statistics
+
+  # ==================== CART ====================
+  /cart/validate:
+    post:
+      tags: [Cart]
+      summary: Validate cart items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
+      responses:
+        200:
+          description: Cart validation result
+
+  /cart/summary:
+    post:
+      tags: [Cart]
+      summary: Get cart summary with vendor grouping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                userZone:
+                  type: string
+      responses:
+        200:
+          description: Cart summary
+
+  /cart/checkout:
+    post:
+      tags: [Cart]
+      summary: Complete checkout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                deliveryAddress:
+                  type: string
+                zone:
+                  type: string
+                promotionCodes:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: Orders created
+
+  # ==================== DELIVERY ====================
+  /delivery/orders/{orderId}/status:
+    patch:
+      tags: [Delivery]
+      summary: Update order delivery status
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ACCEPTED, PREPARING, ON_THE_WAY, DELIVERED, CANCELLED]
+                notes:
+                  type: string
+                estimatedTime:
+                  type: string
+                  format: date-time
+      responses:
+        200:
+          description: Status updated
+
+  /delivery/orders/bulk-status:
+    patch:
+      tags: [Delivery]
+      summary: Bulk update order statuses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderIds:
+                  type: array
+                  items:
+                    type: string
+                status:
+                  type: string
+      responses:
+        200:
+          description: Statuses updated
+
+  /delivery/orders/status/{status}:
+    get:
+      tags: [Delivery]
+      summary: Get orders by delivery status
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Orders with status
+
+  /delivery/orders/{orderId}/assign-driver:
+    post:
+      tags: [Delivery]
+      summary: Assign driver to order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                driverId:
+                  type: string
+      responses:
+        200:
+          description: Driver assigned
+
+  /delivery/orders/{orderId}/cash-collection:
+    post:
+      tags: [Delivery]
+      summary: Record cash collection
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                notes:
+                  type: string
+      responses:
+        200:
+          description: Cash collected
+
+  /delivery/metrics:
+    get:
+      tags: [Delivery]
+      summary: Get delivery metrics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month]
+        - name: companyId
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Delivery metrics
+
+  /delivery/track/{orderId}:
+    get:
+      tags: [Delivery]
+      summary: Track delivery
+      security: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: phone
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Tracking information
+
+  /delivery/active:
+    get:
+      tags: [Delivery]
+      summary: Get active deliveries dashboard
+      responses:
+        200:
+          description: Active deliveries
+
+  # ==================== SETTLEMENTS ====================
+  /settlements/create:
+    post:
+      tags: [Settlements]
+      summary: Create settlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                companyId:
+                  type: string
+                periodStart:
+                  type: string
+                  format: date-time
+                periodEnd:
+                  type: string
+                  format: date-time
+      responses:
+        201:
+          description: Settlement created
+
+  /settlements/summary:
+    get:
+      tags: [Settlements]
+      summary: Get settlement summary
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: Settlement summary
+
+  /settlements/reconcile-cash:
+    post:
+      tags: [Settlements]
+      summary: Reconcile cash collections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                companyId:
+                  type: string
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+      responses:
+        200:
+          description: Reconciliation complete
+
+  /settlements/cash-collected:
+    post:
+      tags: [Settlements]
+      summary: Mark cash as collected
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderId:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        200:
+          description: Cash marked as collected
+
+  /settlements/pending-cash:
+    get:
+      tags: [Settlements]
+      summary: Get pending cash collections
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Pending collections
+
+  /settlements/daily:
+    post:
+      tags: [Settlements]
+      summary: Process daily settlement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                companyId:
+                  type: string
+      responses:
+        200:
+          description: Daily settlement processed
+
+  /settlements/{settlementId}/verify:
+    patch:
+      tags: [Settlements]
+      summary: Verify settlement (Admin only)
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        200:
+          description: Settlement verified
+
+  /settlements/history:
+    get:
+      tags: [Settlements]
+      summary: Get settlement history
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Settlement history
+
+  /settlements/platform-earnings:
+    get:
+      tags: [Settlements]
+      summary: Calculate platform earnings (Admin only)
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: Platform earnings
+
+  /settlements/cash-flow:
+    get:
+      tags: [Settlements]
+      summary: Get cash flow report
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: Cash flow report
+
+  # ==================== ANALYTICS ====================
+  /analytics/dashboard/vendor:
+    get:
+      tags: [Analytics]
+      summary: Get vendor dashboard analytics
+      responses:
+        200:
+          description: Vendor analytics
+
+  /analytics/dashboard/admin:
+    get:
+      tags: [Analytics]
+      summary: Get admin dashboard analytics
+      responses:
+        200:
+          description: Admin analytics
+
+  /analytics/reports/sales:
+    post:
+      tags: [Analytics]
+      summary: Generate sales report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                groupBy:
+                  type: string
+                  enum: [day, week, month]
+      responses:
+        200:
+          description: Sales report
+
+  /analytics/reports/commission:
+    post:
+      tags: [Analytics]
+      summary: Generate commission report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                companyId:
+                  type: string
+                period:
+                  type: string
+      responses:
+        200:
+          description: Commission report
+
+  /analytics/realtime:
+    get:
+      tags: [Analytics]
+      summary: Get real-time statistics
+      responses:
+        200:
+          description: Real-time stats
+
+  # ==================== PAYOUTS ====================
+  /payouts/request:
+    post:
+      tags: [Payouts]
+      summary: Request payout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                method:
+                  type: string
+                  enum: [BANK_TRANSFER, CASH, WALLET, CHECK]
+                bankDetails:
+                  type: object
+      responses:
+        201:
+          description: Payout requested
+
+  /payouts/balance:
+    get:
+      tags: [Payouts]
+      summary: Get available balance
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Available balance
+
+  /payouts/history:
+    get:
+      tags: [Payouts]
+      summary: Get payout history
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Payout history
+
+  /payouts/{id}/status:
+    patch:
+      tags: [Payouts]
+      summary: Update payout status (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED]
+                notes:
+                  type: string
+      responses:
+        200:
+          description: Payout status updated
+
+  # ==================== UPLOAD ====================
+  /upload/single:
+    post:
+      tags: [Upload]
+      summary: Upload single file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+
+  /upload/multiple:
+    post:
+      tags: [Upload]
+      summary: Upload multiple files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        200:
+          description: Files uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  urls:
+                    type: array
+                    items:
+                      type: string
+
+  /upload/delete:
+    delete:
+      tags: [Upload]
+      summary: Delete file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+      responses:
+        200:
+          description: File deleted
+
+  # ==================== INTERNAL API ====================
+  /internal/login:
+    post:
+      tags: [Internal]
+      summary: Internal team login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: lilium@lilium.iq
+                password:
+                  type: string
+                  example: lilium@123
+      responses:
+        200:
+          description: Internal login successful
+
+  /internal/users/vendor:
+    post:
+      tags: [Internal]
+      summary: Create vendor user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                phone:
+                  type: string
+                companyId:
+                  type: string
+      responses:
+        201:
+          description: Vendor created
+
+  /internal/users/shop-owner:
+    post:
+      tags: [Internal]
+      summary: Create shop owner user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                phone:
+                  type: string
+                shopName:
+                  type: string
+                address:
+                  type: string
+                zone:
+                  type: string
+      responses:
+        201:
+          description: Shop owner created
+
+  /internal/users/company-manager:
+    post:
+      tags: [Internal]
+      summary: Create company manager
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                phone:
+                  type: string
+                companyId:
+                  type: string
+      responses:
+        201:
+          description: Company manager created
+
+tags:
+  - name: Health
+    description: API health check endpoints
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management operations
+  - name: Products
+    description: Product catalog management
+  - name: Categories
+    description: Category management
+  - name: Orders
+    description: Order processing and management
+  - name: Promotions
+    description: Promotion and discount management
+  - name: Companies
+    description: Company management for multi-vendor system
+  - name: Vendors
+    description: Vendor-specific operations
+  - name: Cart
+    description: Shopping cart operations
+  - name: Delivery
+    description: Order fulfillment and delivery tracking
+  - name: Settlements
+    description: Cash settlement and reconciliation
+  - name: Analytics
+    description: Analytics and reporting
+  - name: Payouts
+    description: Vendor payout management
+  - name: Upload
+    description: File upload operations
+  - name: Internal
+    description: Internal API for Lilium team

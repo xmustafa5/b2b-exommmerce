@@ -3,7 +3,13 @@
     "allow": [
       "Bash(powershell -Command \"Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Process -Force\")",
       "Bash(node scripts/create-lilium-account.js:*)",
-      "Bash(cmd /c \"taskkill /PID 24304 /F\")"
+      "Bash(cmd /c \"taskkill /PID 24304 /F\")",
+      "Bash(swagger.json)",
+      "Bash(npx tsc:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(\"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\backend\\swagger_check.json\")",
+      "Bash(del \"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\backend\\src\\routes\\users.ts\")"
     ],
     "deny": [],
     "ask": []
