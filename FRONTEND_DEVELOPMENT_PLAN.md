@@ -27,111 +27,140 @@
 ### Authentication Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/auth/login/dashboard` | POST | ✅ | ⏳ | Dashboard login |
-| `/api/auth/login/mobile` | POST | ✅ | ❌ | Mobile only |
-| `/api/internal/login` | POST | ✅ | ⏳ | Super admin login |
-| `/api/auth/refresh` | POST | ✅ | ⏳ | Token refresh |
-| `/api/auth/logout` | POST | ✅ | ⏳ | Logout |
-| `/api/auth/password-reset/request` | POST | ✅ | ⏳ | Request reset |
-| `/api/auth/password-reset/reset` | POST | ✅ | ⏳ | Reset password |
-| `/api/auth/change-password` | POST | ✅ | ⏳ | Change password |
+| `/api/auth/register` | POST | ✅ | ⏳ | Register new user |
+| `/api/auth/register/mobile` | POST | ✅ | ❌ | Mobile shop owner registration |
+| `/api/auth/login` | POST | ✅ | ⏳ | Login with email/password |
+| `/api/auth/otp/request` | POST | ✅ | ⏳ | Request OTP for phone login |
+| `/api/auth/otp/login` | POST | ✅ | ⏳ | Login with phone OTP |
+| `/api/auth/refresh` | POST | ✅ | ⏳ | Refresh access token |
+| `/api/auth/password/reset-request` | POST | ✅ | ⏳ | Request password reset |
+| `/api/auth/password/reset` | POST | ✅ | ⏳ | Reset password with token |
+| `/api/auth/password/update` | PUT | ✅ | ⏳ | Update current password (auth required) |
+| `/api/auth/logout` | POST | ✅ | ⏳ | Logout user (auth required) |
+| `/api/auth/me` | GET | ✅ | ⏳ | Get current user profile |
 
-### User Management Endpoints
+### Internal Team Endpoints (Super Admin)
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/users` | GET | ✅ | ⏳ | List users |
-| `/api/users/:id` | GET | ✅ | ⏳ | Get user |
-| `/api/users` | POST | ✅ | ⏳ | Create user |
-| `/api/users/:id` | PUT | ✅ | ⏳ | Update user |
-| `/api/users/:id` | DELETE | ✅ | ⏳ | Delete user |
-| `/api/users/profile` | GET | ✅ | ⏳ | Get profile |
+| `/api/internal/login` | POST | ✅ | ⏳ | Internal team login |
+| `/api/internal/users/vendor` | POST | ✅ | ⏳ | Create vendor account |
+| `/api/internal/users/company-manager` | POST | ✅ | ⏳ | Create company manager |
+| `/api/internal/users/shop-owner` | POST | ✅ | ⏳ | Create shop owner |
+| `/api/internal/companies` | GET | ✅ | ⏳ | List all companies |
+| `/api/internal/companies` | POST | ✅ | ⏳ | Create company |
+| `/api/internal/users` | GET | ✅ | ⏳ | List users |
+| `/api/internal/users/:id/deactivate` | PATCH | ✅ | ⏳ | Deactivate user |
+| `/api/internal/users/:id/activate` | PATCH | ✅ | ⏳ | Activate user |
+| `/api/internal/generate-password` | GET | ✅ | ⏳ | Generate password |
+| `/api/internal/zones` | GET | ✅ | ⏳ | Get available zones |
+| `/api/internal/roles` | GET | ✅ | ⏳ | Get available roles |
 
 ### Product Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/products` | GET | ✅ | ⏳ | List products |
-| `/api/products/:id` | GET | ✅ | ⏳ | Get product |
-| `/api/products` | POST | ✅ | ⏳ | Create product |
-| `/api/products/:id` | PUT | ✅ | ⏳ | Update product |
-| `/api/products/:id` | DELETE | ✅ | ⏳ | Delete product |
-| `/api/products/featured` | GET | ✅ | ⏳ | Featured products |
-| `/api/products/search` | GET | ✅ | ⏳ | Search products |
-| `/api/products/:id/stock` | PATCH | ✅ | ⏳ | Update stock |
+| `/api/products` | GET | ✅ | ⏳ | List products with pagination/filters |
+| `/api/products/featured` | GET | ✅ | ⏳ | Get featured products |
+| `/api/products/category/:categoryId` | GET | ✅ | ⏳ | Get products by category |
+| `/api/products/:id` | GET | ✅ | ⏳ | Get product by ID |
+| `/api/products` | POST | ✅ | ⏳ | Create product (Admin) |
+| `/api/products/:id` | PUT | ✅ | ⏳ | Update product (Admin) |
+| `/api/products/:id/stock` | PATCH | ✅ | ⏳ | Update stock (add/subtract/set) |
+| `/api/products/:id` | DELETE | ✅ | ⏳ | Delete product (Super Admin) |
+| `/api/products/bulk` | PATCH | ✅ | ⏳ | Bulk update products |
+| `/api/products/bulk` | DELETE | ✅ | ⏳ | Bulk delete products |
 
 ### Category Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/categories` | GET | ✅ | ⏳ | List categories |
-| `/api/categories/:id` | GET | ✅ | ⏳ | Get category |
-| `/api/categories` | POST | ✅ | ⏳ | Create category |
-| `/api/categories/:id` | PUT | ✅ | ⏳ | Update category |
-| `/api/categories/:id` | DELETE | ✅ | ⏳ | Delete category |
-| `/api/categories/tree` | GET | ✅ | ⏳ | Category tree |
-| `/api/categories/:id/stats` | GET | ✅ | ⏳ | Category stats |
+| `/api/categories` | GET | ✅ | ✅ | List categories (returns hierarchical tree) |
+| `/api/categories/:id` | GET | ✅ | ✅ | Get category |
+| `/api/categories` | POST | ✅ | ✅ | Create category |
+| `/api/categories/:id` | PUT | ✅ | ✅ | Update category |
+| `/api/categories/:id` | DELETE | ✅ | ✅ | Delete category |
+| `/api/categories/stats` | GET | ✅ | ⏳ | All categories statistics |
+| `/api/categories/reorder` | PATCH | ✅ | ⏳ | Reorder categories |
 
 ### Order Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/orders` | GET | ✅ | ⏳ | List orders |
-| `/api/orders/:id` | GET | ✅ | ⏳ | Get order |
-| `/api/orders` | POST | ✅ | ⏳ | Create order |
-| `/api/orders/:id/status` | PATCH | ✅ | ⏳ | Update status |
-| `/api/orders/:id/cancel` | POST | ✅ | ⏳ | Cancel order |
-| `/api/orders/stats` | GET | ✅ | ⏳ | Order stats |
+| `/api/orders` | GET | ✅ | ⏳ | List orders with filters |
+| `/api/orders/stats` | GET | ✅ | ⏳ | Get order statistics (Admin) |
+| `/api/orders/:id` | GET | ✅ | ⏳ | Get order by ID |
+| `/api/orders` | POST | ✅ | ⏳ | Create order (Shop owner) |
+| `/api/orders/:id/status` | PUT | ✅ | ⏳ | Update order status (Admin) |
+| `/api/orders/:id` | DELETE | ✅ | ⏳ | Cancel order |
 
 ### Promotion Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
 | `/api/promotions` | GET | ✅ | ⏳ | List promotions |
-| `/api/promotions/:id` | GET | ✅ | ⏳ | Get promotion |
-| `/api/promotions` | POST | ✅ | ⏳ | Create promotion |
-| `/api/promotions/:id` | PUT | ✅ | ⏳ | Update promotion |
-| `/api/promotions/:id` | DELETE | ✅ | ⏳ | Delete promotion |
-| `/api/promotions/active` | GET | ✅ | ⏳ | Active promotions |
-| `/api/promotions/validate` | POST | ✅ | ⏳ | Validate promotion |
+| `/api/promotions/active/:zone` | GET | ✅ | ⏳ | Get active promotions by zone |
+| `/api/promotions/:id` | GET | ✅ | ⏳ | Get promotion by ID |
+| `/api/promotions` | POST | ✅ | ⏳ | Create promotion (Admin) |
+| `/api/promotions/:id` | PUT | ✅ | ⏳ | Update promotion (Admin) |
+| `/api/promotions/:id/toggle` | PATCH | ✅ | ⏳ | Toggle promotion status (Admin) |
+| `/api/promotions/:id` | DELETE | ✅ | ⏳ | Delete promotion (Super Admin) |
+| `/api/promotions/apply-to-cart` | POST | ✅ | ⏳ | Apply promotions to cart |
 
 ### Delivery Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/delivery/orders/:id/status` | PATCH | ✅ | ⏳ | Update delivery status |
-| `/api/delivery/orders/bulk-status` | PATCH | ✅ | ⏳ | Bulk status update |
-| `/api/delivery/orders/status/:status` | GET | ✅ | ⏳ | Orders by status |
-| `/api/delivery/orders/:id/assign-driver` | POST | ✅ | ⏳ | Assign driver |
-| `/api/delivery/orders/:id/cash-collection` | POST | ✅ | ⏳ | Record cash collection |
+| `/api/delivery/orders/:orderId/status` | PATCH | ✅ | ⏳ | Update order delivery status |
+| `/api/delivery/orders/bulk-status` | PATCH | ✅ | ⏳ | Bulk update order statuses |
+| `/api/delivery/orders/status/:status` | GET | ✅ | ⏳ | Get orders by delivery status |
+| `/api/delivery/orders/:orderId/assign-driver` | POST | ✅ | ⏳ | Assign driver to order |
+| `/api/delivery/orders/:orderId/cash-collection` | POST | ✅ | ⏳ | Record cash collection for COD |
+| `/api/delivery/metrics` | GET | ✅ | ⏳ | Get delivery metrics |
+| `/api/delivery/track/:orderId` | GET | ✅ | ⏳ | Track delivery status (public) |
+| `/api/delivery/active` | GET | ✅ | ⏳ | Get active deliveries dashboard |
 
 ### Settlement Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/settlements/create` | POST | ✅ | ⏳ | Create settlement |
-| `/api/settlements/summary` | GET | ✅ | ⏳ | Settlement summary |
-| `/api/settlements/reconcile-cash` | POST | ✅ | ⏳ | Reconcile cash |
-| `/api/settlements/cash-collected` | POST | ✅ | ⏳ | Record cash |
-| `/api/settlements/pending-cash` | GET | ✅ | ⏳ | Pending cash |
-| `/api/settlements/daily` | POST | ✅ | ⏳ | Daily settlement |
-| `/api/settlements/:id/verify` | PATCH | ✅ | ⏳ | Verify settlement |
-| `/api/settlements/history` | GET | ✅ | ⏳ | Settlement history |
-| `/api/settlements/platform-earnings` | GET | ✅ | ⏳ | Platform earnings |
-| `/api/settlements/cash-flow` | GET | ✅ | ⏳ | Cash flow report |
+| `/api/settlements/create` | POST | ✅ | ⏳ | Create settlement for period |
+| `/api/settlements/summary` | GET | ✅ | ⏳ | Get settlement summary |
+| `/api/settlements/reconcile-cash` | POST | ✅ | ⏳ | Reconcile cash collections |
+| `/api/settlements/cash-collected` | POST | ✅ | ⏳ | Mark cash as collected |
+| `/api/settlements/pending-cash` | GET | ✅ | ⏳ | Get pending cash collections |
+| `/api/settlements/daily` | POST | ✅ | ⏳ | Process daily settlement |
+| `/api/settlements/:settlementId/verify` | PATCH | ✅ | ⏳ | Verify settlement (Admin) |
+| `/api/settlements/history` | GET | ✅ | ⏳ | Get settlement history |
+| `/api/settlements/platform-earnings` | GET | ✅ | ⏳ | Calculate platform earnings (Admin) |
+| `/api/settlements/cash-flow` | GET | ✅ | ⏳ | Get cash flow report |
 
-### Vendor Endpoints
+### Vendor Endpoints (Vendor-specific routes)
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/vendors` | GET | ⏳ | ⏳ | List vendors |
-| `/api/vendors/:id` | GET | ⏳ | ⏳ | Get vendor |
-| `/api/vendors` | POST | ⏳ | ⏳ | Create vendor |
-| `/api/vendors/:id` | PUT | ⏳ | ⏳ | Update vendor |
-| `/api/vendors/:id/products` | GET | ✅ | ⏳ | Vendor products |
-| `/api/vendors/:id/orders` | GET | ⏳ | ⏳ | Vendor orders |
-| `/api/vendors/:id/stats` | GET | ⏳ | ⏳ | Vendor stats |
+| `/api/vendors/company` | GET | ✅ | ⏳ | Get vendor's company |
+| `/api/vendors/company/:id` | PUT | ✅ | ⏳ | Update vendor's company |
+| `/api/vendors/stats` | GET | ✅ | ⏳ | Get vendor dashboard stats |
+| `/api/vendors/products` | GET | ✅ | ⏳ | List vendor products |
+| `/api/vendors/products/:id` | GET | ✅ | ⏳ | Get vendor product by ID |
+| `/api/vendors/products` | POST | ✅ | ⏳ | Create product |
+| `/api/vendors/products/:id` | PUT | ✅ | ⏳ | Update product |
+| `/api/vendors/products/:id` | DELETE | ✅ | ⏳ | Delete product |
+| `/api/vendors/products/:id/stock` | PATCH | ✅ | ⏳ | Update stock |
+| `/api/vendors/orders` | GET | ✅ | ⏳ | List vendor orders |
+| `/api/vendors/orders/:id` | GET | ✅ | ⏳ | Get vendor order by ID |
+| `/api/vendors/orders/:id/status` | PATCH | ✅ | ⏳ | Update order status |
+| `/api/vendors/customers` | GET | ✅ | ⏳ | Get vendor customers |
+| `/api/vendors/export/:type` | GET | ✅ | ⏳ | Export vendor data |
 
 ### Company Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
 | `/api/companies` | GET | ✅ | ⏳ | List companies |
-| `/api/companies/:id` | GET | ✅ | ⏳ | Get company |
 | `/api/companies` | POST | ✅ | ⏳ | Create company |
+| `/api/companies/:id` | GET | ✅ | ⏳ | Get company by ID |
 | `/api/companies/:id` | PUT | ✅ | ⏳ | Update company |
-| `/api/companies/:id` | DELETE | ✅ | ⏳ | Delete company |
+| `/api/companies/:id/stats` | GET | ✅ | ⏳ | Get company statistics |
+| `/api/companies/:id/status` | PATCH | ✅ | ⏳ | Toggle company status |
+| `/api/companies/:id/delivery-fees` | PATCH | ✅ | ⏳ | Update delivery fees |
+| `/api/companies/:id/commission` | PATCH | ✅ | ⏳ | Update commission rate |
+| `/api/companies/:id/vendors` | GET | ✅ | ⏳ | Get company vendors |
+| `/api/companies/:id/products` | GET | ✅ | ⏳ | Get company products |
+| `/api/companies/zone/:zone` | GET | ✅ | ⏳ | Get companies by zone |
+| `/api/companies/:id/payouts` | GET | ✅ | ⏳ | Calculate company payouts |
 
 ### Upload Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
@@ -1030,10 +1059,10 @@ const promotionSchema = z.object({
 | Backend Phase | Backend Status | Frontend Phase | Frontend Status | Priority |
 |---------------|----------------|----------------|-----------------|----------|
 | Phase 1: Foundation | ✅ 100% | Phase 1: Setup | ⏳ 0% | 🔴 Critical |
-| Phase 2: Auth | ✅ 95% | Phase 2: Auth | ⏳ 0% | 🔴 Critical |
-| Phase 3: Products | ✅ 85% | Phase 3: Products | ⏳ 0% | 🔴 Critical |
-| Phase 4: Orders | ✅ 80% | Phase 4: Orders | ⏳ 0% | 🔴 Critical |
-| Phase 5: Vendors | ⏳ 5% | Phase 5: Vendors | ❌ Blocked | 🟡 Medium |
+| Phase 2: Auth | ✅ 100% | Phase 2: Auth | ⏳ 0% | 🔴 Critical |
+| Phase 3: Products | ✅ 100% | Phase 3: Products | ⏳ 0% | 🔴 Critical |
+| Phase 4: Orders | ✅ 100% | Phase 4: Orders | ⏳ 0% | 🔴 Critical |
+| Phase 5: Vendors | ✅ 100% | Phase 5: Vendors | ⏳ 0% | 🔴 Critical |
 | Phase 6: Delivery | ✅ 100% | Phase 6: Delivery | ⏳ 0% | 🔴 Critical |
 | Phase 7: Analytics | 🚧 10% | Phase 7: Analytics | ❌ Blocked | 🟡 Medium |
 | Phase 8: Customer | 🚧 15% | Phase 8: Customer | ⏳ 0% | 🟢 Low |
@@ -1073,22 +1102,27 @@ const promotionSchema = z.object({
 
 ## CONCLUSION
 
-The Lilium B2B Dashboard Frontend requires integration with **126 backend API endpoints** across **14 phases**. The backend has strong completion (75% overall) with critical APIs for:
+The Lilium B2B Dashboard Frontend requires integration with **~80 backend API endpoints** across **14 phases**. The backend has strong completion (90% overall) with critical APIs for:
 
-- ✅ Authentication (95% complete)
-- ✅ Products & Categories (85% complete)
-- ✅ Orders & Promotions (80% complete)
-- ✅ Delivery & Settlements (100% complete)
-- ✅ Companies (100% complete)
-- ⏳ Vendors (5% complete - blocked)
-- ⏳ Analytics (10% complete)
+- ✅ Authentication (100% complete) - 11 endpoints
+- ✅ Internal Team (100% complete) - 12 endpoints
+- ✅ Products (100% complete) - 10 endpoints
+- ✅ Categories (100% complete) - 7 endpoints
+- ✅ Orders (100% complete) - 6 endpoints
+- ✅ Promotions (100% complete) - 8 endpoints
+- ✅ Delivery (100% complete) - 8 endpoints
+- ✅ Settlements (100% complete) - 10 endpoints
+- ✅ Vendors (100% complete) - 14 endpoints
+- ✅ Companies (100% complete) - 12 endpoints
+- ✅ Upload (100% complete) - 3 endpoints
+- 🚧 Analytics (10% complete - pending)
 
 **Estimated Frontend Development:** 4-6 weeks with focused team
 
 ---
 
-**Document Version:** 1.0
-**Created:** November 22, 2025
+**Document Version:** 1.1
+**Updated:** November 22, 2025
 **Technology Stack:** Next.js 15, React 19, TypeScript, React Query v5, shadcn/ui
 **Backend API:** Fastify + Prisma (http://localhost:3000)
 
