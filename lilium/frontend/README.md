@@ -1,106 +1,36 @@
-# Lilium Frontend
-
-A modern web application built with Next.js 14, React, TypeScript, and Tailwind CSS.
-
-## Tech Stack
-
-- **Next.js 14** - React framework with App Router
-- **React 19** - UI library
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first CSS framework
-- **Axios** - HTTP client
-- **React Query** - Server state management
-- **Zustand** - Client state management
-- **React Hook Form** - Form handling
-- **Zod** - Schema validation
-
-## Features
-
-- Server-side rendering with Next.js App Router
-- Type-safe API calls
-- Global state management with Zustand
-- Form validation with React Hook Form and Zod
-- Responsive design with Tailwind CSS
-- Authentication flow
-- API integration with backend
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18+ installed
-- Backend server running on port 3000
-
-### Installation
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Environment variables are already configured in `.env.local`
-
-### Development
-
-Start the development server:
+First, run the development server:
 
 ```bash
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-The application will start at `http://localhost:3001`
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Available Scripts
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-- `npm run dev` - Start development server on port 3001
-- `npm run build` - Build for production
-- `npm run start` - Start production server on port 3001
-- `npm run lint` - Run ESLint
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Project Structure
+## Learn More
 
-```
-frontend/
-├── src/
-│   ├── app/             # Next.js App Router pages
-│   ├── components/      # Reusable React components
-│   ├── lib/            # Utility functions and API client
-│   │   └── api.ts      # Axios API client
-│   └── store/          # Zustand stores
-│       └── auth.ts     # Authentication store
-├── public/             # Static assets
-├── .env.local         # Environment variables
-├── package.json       # Dependencies and scripts
-├── tailwind.config.ts # Tailwind CSS configuration
-└── tsconfig.json      # TypeScript configuration
-```
+To learn more about Next.js, take a look at the following resources:
 
-## Environment Variables
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-NEXT_PUBLIC_APP_URL=http://localhost:3001
-```
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## API Integration
+## Deploy on Vercel
 
-The frontend connects to the backend API at `http://localhost:3000/api`. Make sure the backend is running before starting the frontend.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-### Available API Services
-
-- **Auth Service** - Registration, login, token verification
-- **Users Service** - CRUD operations for users
-- **Health Service** - API health check
-
-## State Management
-
-- **Zustand** for global client state (authentication, user data)
-- **React Query** for server state (API data caching and synchronization)
-
-## Forms
-
-Forms are handled with React Hook Form and validated with Zod schemas for type-safe form validation.
-
-## Styling
-
-The application uses Tailwind CSS for styling with a mobile-first responsive approach.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

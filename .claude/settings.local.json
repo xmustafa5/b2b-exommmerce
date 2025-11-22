@@ -11,7 +11,9 @@
       "Bash(\"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\backend\\swagger_check.json\")",
       "Bash(del \"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\backend\\src\\routes\\users.ts\")",
       "Bash(npx prisma db seed:*)",
-      "Bash(node scripts/list-users.js:*)"
+      "Bash(node scripts/list-users.js:*)",
+      "Bash(dir:*)",
+      "Bash(npx create-next-app:*)"
     ],
     "deny": [],
     "ask": []
