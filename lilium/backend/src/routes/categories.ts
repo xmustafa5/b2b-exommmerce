@@ -29,6 +29,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'array',
           items: {
             type: 'object',
+            additionalProperties: true,
             properties: {
               id: { type: 'string' },
               nameAr: { type: 'string' },
@@ -43,9 +44,27 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
               updatedAt: { type: 'string', format: 'date-time' },
               children: {
                 type: 'array',
-                items: { type: 'object' }
+                items: {
+                  type: 'object',
+                  additionalProperties: true,
+                  properties: {
+                    id: { type: 'string' },
+                    nameAr: { type: 'string' },
+                    nameEn: { type: 'string' },
+                    slug: { type: 'string' },
+                    description: { type: 'string', nullable: true },
+                    image: { type: 'string', nullable: true },
+                    parentId: { type: 'string', nullable: true },
+                    isActive: { type: 'boolean' },
+                    displayOrder: { type: 'number' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    updatedAt: { type: 'string', format: 'date-time' },
+                    children: { type: 'array' },
+                    _count: { type: 'object', additionalProperties: true }
+                  }
+                }
               },
-              productCount: { type: 'number' }
+              _count: { type: 'object', additionalProperties: true }
             }
           }
         },

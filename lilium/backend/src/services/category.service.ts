@@ -4,12 +4,21 @@ import { Category, Prisma } from '@prisma/client';
 interface CategoryCreateInput {
   nameEn: string;
   nameAr: string;
-  descriptionEn?: string;
-  descriptionAr?: string;
-  icon?: string;
+  description?: string;
+  image?: string;
   parentId?: string;
   displayOrder?: number;
   isActive?: boolean;
+}
+
+// Helper function to generate slug from English name
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 interface CategoryUpdateInput extends Partial<CategoryCreateInput> {}
@@ -24,10 +33,6 @@ export class CategoryService {
     const categories = await this.fastify.prisma.category.findMany({
       where,
       include: {
-        parent: true,
-        children: {
-          where: includeInactive ? {} : { isActive: true },
-        },
         _count: {
           select: { products: true },
         },
@@ -38,22 +43,32 @@ export class CategoryService {
       ],
     });
 
-    // Build hierarchy tree
-    const rootCategories = categories.filter(c => !c.parentId);
-    return this.buildCategoryTree(rootCategories, categories);
+    // Build hierarchy tree from flat list
+    return this.buildCategoryTree(categories);
   }
 
-  // Build category tree structure
-  private buildCategoryTree(rootCategories: any[], allCategories: any[]) {
-    return rootCategories.map(root => ({
-      ...root,
-      children: allCategories
-        .filter(c => c.parentId === root.id)
-        .map(child => ({
-          ...child,
-          children: allCategories.filter(c => c.parentId === child.id),
-        })),
-    }));
+  // Build category tree structure from flat list
+  private buildCategoryTree(categories: any[]) {
+    const categoryMap = new Map<string, any>();
+
+    // First pass: create map of all categories with empty children arrays
+    categories.forEach(cat => {
+      categoryMap.set(cat.id, { ...cat, children: [] });
+    });
+
+    const rootCategories: any[] = [];
+
+    // Second pass: assign children to parents
+    categories.forEach(cat => {
+      const category = categoryMap.get(cat.id);
+      if (cat.parentId && categoryMap.has(cat.parentId)) {
+        categoryMap.get(cat.parentId).children.push(category);
+      } else if (!cat.parentId) {
+        rootCategories.push(category);
+      }
+    });
+
+    return rootCategories;
   }
 
   // Get single category by ID
@@ -98,8 +113,23 @@ export class CategoryService {
       data.displayOrder = (maxOrder._max.displayOrder || 0) + 1;
     }
 
+    // Generate slug from English name
+    let slug = generateSlug(data.nameEn);
+
+    // Check for existing slug and make unique if needed
+    const existingSlug = await this.fastify.prisma.category.findUnique({
+      where: { slug },
+    });
+
+    if (existingSlug) {
+      slug = `${slug}-${Date.now()}`;
+    }
+
     const category = await this.fastify.prisma.category.create({
-      data,
+      data: {
+        ...data,
+        slug,
+      },
       include: {
         parent: true,
         children: true,

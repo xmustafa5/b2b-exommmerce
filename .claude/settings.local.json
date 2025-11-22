@@ -13,7 +13,20 @@
       "Bash(npx prisma db seed:*)",
       "Bash(node scripts/list-users.js:*)",
       "Bash(dir:*)",
-      "Bash(npx create-next-app:*)"
+      "Bash(npx create-next-app:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWk4cmdnbDQwMDAwdHM5MHNseHh3NnpoIiwiZW1haWwiOiJsaWxpdW1AbGlsaXVtLmlxIiwicm9sZSI6IlNVUEVSX0FETUlOIiwiem9uZXMiOlsiS0FSS0giLCJSVVNBRkEiXSwiaWF0IjoxNzYzODEwNDkyLCJleHAiOjE3NjM4MTQwOTJ9.bmMYd6GLr9VbwmolQ2_St6c86j2E1NHe6olUlFDFZo4\")",
+      "Bash(npx prisma db push --accept-data-loss)",
+      "Bash(timeout /t 2 /nobreak)",
+      "Bash(nul)",
+      "Bash(npx prisma generate)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWk4cmdnbDQwMDAwdHM5MHNseHh3NnpoIiwiZW1haWwiOiJsaWxpdW1AbGlsaXVtLmlxIiwicm9sZSI6IlNVUEVSX0FETUlOIiwiem9uZXMiOlsiS0FSS0giLCJSVVNBRkEiXSwiaWF0IjoxNzYzODEwNTc3LCJleHAiOjE3NjM4MTQxNzd9.clndSFoAfT4yeQQPC6WB6_eN_Vt8d4aHpUrxF746KGE\")",
+      "Bash(__NEW_LINE__ echo \"=== GET /api/categories ===\")",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(__NEW_LINE__ echo \"=== POST /api/categories - Create Electronics ===\")",
+      "Bash(del \"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\frontend\\components\\categories\\category-form-dialog.tsx\")",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

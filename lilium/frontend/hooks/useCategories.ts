@@ -5,8 +5,10 @@ import type {
   CategoryFilters,
   CategoryCreateInput,
   CategoryUpdateInput,
+  CategoryReorderItem,
 } from "@/types/category";
 
+// Get all categories (returns hierarchical tree)
 export function useCategories(filters?: CategoryFilters) {
   return useQuery({
     queryKey: categoriesQueryKeys.list(filters),
@@ -14,13 +16,7 @@ export function useCategories(filters?: CategoryFilters) {
   });
 }
 
-export function useCategoryTree() {
-  return useQuery({
-    queryKey: categoriesQueryKeys.tree(),
-    queryFn: () => categoriesApi.getTree(),
-  });
-}
-
+// Get single category by ID
 export function useCategory(id: string) {
   return useQuery({
     queryKey: categoriesQueryKeys.detail(id),
@@ -29,6 +25,15 @@ export function useCategory(id: string) {
   });
 }
 
+// Get category statistics
+export function useCategoryStats() {
+  return useQuery({
+    queryKey: categoriesQueryKeys.stats(),
+    queryFn: () => categoriesApi.getStats(),
+  });
+}
+
+// Create new category
 export function useCreateCategory() {
   const queryClient = useQueryClient();
 
@@ -42,6 +47,7 @@ export function useCreateCategory() {
   });
 }
 
+// Update category
 export function useUpdateCategory(id: string) {
   const queryClient = useQueryClient();
 
@@ -58,11 +64,28 @@ export function useUpdateCategory(id: string) {
   });
 }
 
+// Delete category
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => categoriesApi.delete(id),
+    mutationFn: ({ id, reassignToId }: { id: string; reassignToId?: string }) =>
+      categoriesApi.delete(id, reassignToId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: categoriesQueryKeys.all,
+      });
+    },
+  });
+}
+
+// Reorder categories
+export function useReorderCategories() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (categories: CategoryReorderItem[]) =>
+      categoriesApi.reorder(categories),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: categoriesQueryKeys.all,

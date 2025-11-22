@@ -4,21 +4,15 @@ import type {
   CategoryCreateInput,
   CategoryUpdateInput,
   CategoryFilters,
-  CategoriesResponse,
+  CategoryStats,
+  CategoryReorderItem,
 } from "@/types/category";
 
 export const categoriesApi = {
-  // Get all categories (paginated)
-  getAll: async (filters?: CategoryFilters): Promise<CategoriesResponse> => {
-    const response = await apiClient.get<CategoriesResponse>("/categories", {
-      params: filters,
-    });
-    return response.data;
-  },
-
-  // Get category tree (hierarchical)
-  getTree: async (): Promise<Category[]> => {
-    const response = await apiClient.get<Category[]>("/categories/tree");
+  // Get all categories (returns hierarchical tree)
+  getAll: async (filters?: CategoryFilters): Promise<Category[]> => {
+    const params = filters?.includeInactive ? { includeInactive: "true" } : {};
+    const response = await apiClient.get<Category[]>("/categories", { params });
     return response.data;
   },
 
@@ -28,9 +22,9 @@ export const categoriesApi = {
     return response.data;
   },
 
-  // Get category by slug
-  getBySlug: async (slug: string): Promise<Category> => {
-    const response = await apiClient.get<Category>(`/categories/slug/${slug}`);
+  // Get category statistics
+  getStats: async (): Promise<CategoryStats[]> => {
+    const response = await apiClient.get<CategoryStats[]>("/categories/stats");
     return response.data;
   },
 
@@ -41,31 +35,19 @@ export const categoriesApi = {
   },
 
   // Update category
-  update: async (
-    id: string,
-    data: CategoryUpdateInput
-  ): Promise<Category> => {
+  update: async (id: string, data: CategoryUpdateInput): Promise<Category> => {
     const response = await apiClient.put<Category>(`/categories/${id}`, data);
     return response.data;
   },
 
   // Delete category
-  delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/categories/${id}`);
-  },
-
-  // Toggle category active status
-  toggleActive: async (id: string): Promise<Category> => {
-    const response = await apiClient.patch<Category>(
-      `/categories/${id}/toggle`
-    );
-    return response.data;
+  delete: async (id: string, reassignToId?: string): Promise<void> => {
+    const params = reassignToId ? { reassignToId } : {};
+    await apiClient.delete(`/categories/${id}`, { params });
   },
 
   // Reorder categories
-  reorder: async (
-    categoryIds: { id: string; sortOrder: number }[]
-  ): Promise<void> => {
-    await apiClient.post("/categories/reorder", { categories: categoryIds });
+  reorder: async (categories: CategoryReorderItem[]): Promise<void> => {
+    await apiClient.patch("/categories/reorder", { categories });
   },
 };

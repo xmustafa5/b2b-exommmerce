@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, FolderTree } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  FolderTree,
+  ChevronRight,
+} from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,28 +35,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
-import type { CategoryFilters } from "@/types/category";
+import { useCategories } from "@/hooks/useCategories";
+import type { Category, CategoryFilters } from "@/types/category";
+import { CategoryCreateDialog } from "./_components/category-create-dialog";
+import { CategoryEditDialog } from "./_components/category-edit-dialog";
+import { CategoryDeleteDialog } from "./_components/category-delete-dialog";
 
 export default function CategoriesPage() {
-  const [filters, setFilters] = useState<CategoryFilters>({
-    page: 1,
-    limit: 20,
-  });
+  const [filters, setFilters] = useState<CategoryFilters>({});
   const [search, setSearch] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
-  const { data, isLoading } = useCategories(filters);
-  const deleteMutation = useDeleteCategory();
+  const { data: categories, isLoading } = useCategories(filters);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFilters((prev) => ({ ...prev, search, page: 1 }));
+  // Filter categories by search term
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    if (!search) return categories;
+
+    const searchLower = search.toLowerCase();
+    return categories.filter(
+      (cat) =>
+        cat.nameEn.toLowerCase().includes(searchLower) ||
+        cat.nameAr.toLowerCase().includes(searchLower) ||
+        cat.slug.toLowerCase().includes(searchLower)
+    );
+  }, [categories, search]);
+
+  // Flatten categories for display (show parent > child structure)
+  const flattenedCategories = useMemo(() => {
+    const result: (Category & { depth: number })[] = [];
+
+    const addCategory = (cat: Category, depth: number) => {
+      result.push({ ...cat, depth });
+      if (cat.children) {
+        cat.children.forEach((child) => addCategory(child, depth + 1));
+      }
+    };
+
+    filteredCategories.forEach((cat) => addCategory(cat, 0));
+    return result;
+  }, [filteredCategories]);
+
+  const handleOpenCreate = () => {
+    setCreateDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this category?")) {
-      deleteMutation.mutate(id);
-    }
+  const handleOpenEdit = (category: Category) => {
+    setEditingCategory(category);
+    setEditDialogOpen(true);
+  };
+
+  const handleOpenDelete = (category: Category) => {
+    setDeletingCategory(category);
+    setDeleteDialogOpen(true);
   };
 
   return (
@@ -59,48 +102,38 @@ export default function CategoriesPage() {
       <div className="flex-1 space-y-6 p-6">
         {/* Actions Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search categories..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-64 pl-9"
-              />
-            </div>
-            <Button type="submit" variant="secondary">
-              Search
-            </Button>
-          </form>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search categories..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 pl-9"
+            />
+          </div>
 
           <div className="flex gap-2">
             <Select
-              value={filters.isActive?.toString() || "all"}
+              value={filters.includeInactive ? "all" : "active"}
               onValueChange={(value) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  isActive: value === "all" ? undefined : value === "true",
-                  page: 1,
-                }))
+                setFilters({
+                  includeInactive: value === "all" ? true : undefined,
+                })
               }
             >
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="active">Active Only</SelectItem>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
 
-            <Button asChild>
-              <Link href="/dashboard/categories/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Category
-              </Link>
+            <Button onClick={handleOpenCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Category
             </Button>
           </div>
         </div>
@@ -115,145 +148,123 @@ export default function CategoriesPage() {
               <div className="flex h-48 items-center justify-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               </div>
-            ) : !data?.data?.length ? (
+            ) : !flattenedCategories.length ? (
               <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
                 <FolderTree className="mb-4 h-12 w-12" />
                 <p>No categories found</p>
-                <Button asChild className="mt-4">
-                  <Link href="/dashboard/categories/new">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add your first category
-                  </Link>
+                <Button className="mt-4" onClick={handleOpenCreate}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add your first category
                 </Button>
               </div>
             ) : (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Slug</TableHead>
-                      <TableHead>Parent</TableHead>
-                      <TableHead>Products</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.data.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                              <FolderTree className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{category.name}</p>
-                              {category.nameAr && (
-                                <p className="text-sm text-muted-foreground" dir="rtl">
-                                  {category.nameAr}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {category.slug}
-                        </TableCell>
-                        <TableCell>
-                          {category.parent?.name || (
-                            <span className="text-muted-foreground">—</span>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Products</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {flattenedCategories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell>
+                        <div
+                          className="flex items-center gap-3"
+                          style={{ paddingLeft: `${category.depth * 24}px` }}
+                        >
+                          {category.depth > 0 && (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
-                        </TableCell>
-                        <TableCell>{category._count?.products || 0}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              category.isActive
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {category.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/dashboard/categories/${category.id}/edit`}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(category.id)}
-                                className="text-destructive"
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                            <FolderTree className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{category.nameEn}</p>
+                            {category.nameAr && (
+                              <p
+                                className="text-sm text-muted-foreground"
+                                dir="rtl"
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {/* Pagination */}
-                {data.meta && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {(data.meta.page - 1) * data.meta.limit + 1} to{" "}
-                      {Math.min(
-                        data.meta.page * data.meta.limit,
-                        data.meta.total
-                      )}{" "}
-                      of {data.meta.total} categories
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            page: (prev.page || 1) - 1,
-                          }))
-                        }
-                        disabled={data.meta.page <= 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            page: (prev.page || 1) + 1,
-                          }))
-                        }
-                        disabled={data.meta.page >= data.meta.totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+                                {category.nameAr}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {category.slug}
+                      </TableCell>
+                      <TableCell>{category._count?.products || 0}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${category.isActive
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                            }`}
+                        >
+                          {category.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleOpenEdit(category)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleOpenDelete(category)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Create Category Dialog */}
+      <CategoryCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
+
+      {/* Edit Category Dialog */}
+      {editingCategory && (
+        <CategoryEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          category={editingCategory}
+        />
+      )}
+
+      {/* Delete Category Dialog */}
+      {deletingCategory && (
+        <CategoryDeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          category={deletingCategory}
+        />
+      )}
     </div>
   );
 }
