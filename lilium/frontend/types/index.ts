@@ -3,7 +3,8 @@ export * from "./product";
 export * from "./order";
 export * from "./category";
 export * from "./company";
-export * from "./vendor";
+// Note: vendor types are not exported through index to avoid Zone/OrderStatus conflicts
+// Import vendor types directly from @/types/vendor when needed
 export * from "./shop";
 export * from "./delivery";
 

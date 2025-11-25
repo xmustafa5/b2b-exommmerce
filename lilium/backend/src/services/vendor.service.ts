@@ -87,12 +87,12 @@ export class VendorService {
   }
 
   /**
-   * Get all products for a vendor's company
+   * Get all products for a vendor's company with pagination
    */
   async getVendorProducts(
     companyId: string,
     filter: VendorProductFilter = {}
-  ): Promise<{ products: Product[]; total: number }> {
+  ): Promise<{ data: Product[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     const {
       categoryId,
       isActive,
@@ -131,7 +131,15 @@ export class VendorService {
       this.fastify.prisma.product.count({ where }),
     ]);
 
-    return { products, total };
+    return {
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**

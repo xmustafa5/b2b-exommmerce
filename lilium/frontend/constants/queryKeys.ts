@@ -46,8 +46,23 @@ export const companiesQueryKeys = {
 
 export const vendorsQueryKeys = {
   all: ["vendors"] as const,
-  list: (...args: any[]) => ["vendors", "list", ...args] as const,
-  detail: (id: string) => ["vendors", "detail", id] as const,
+  company: ["vendors", "company"] as const,
+  stats: ["vendors", "stats"] as const,
+  products: {
+    all: ["vendors", "products"] as const,
+    list: (...args: any[]) => ["vendors", "products", "list", ...args] as const,
+    detail: (id: string) => ["vendors", "products", "detail", id] as const,
+  },
+  orders: {
+    all: ["vendors", "orders"] as const,
+    list: (...args: any[]) => ["vendors", "orders", "list", ...args] as const,
+    detail: (id: string) => ["vendors", "orders", "detail", id] as const,
+  },
+  customers: {
+    all: ["vendors", "customers"] as const,
+    list: (...args: any[]) => ["vendors", "customers", "list", ...args] as const,
+  },
+  export: (type: string, format: string) => ["vendors", "export", type, format] as const,
 };
 
 export const shopsQueryKeys = {

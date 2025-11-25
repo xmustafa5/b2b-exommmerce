@@ -1,6 +1,7 @@
 // Company types aligned with backend API
 
-export type Zone = "KARKH" | "RUSAFA";
+import type { Zone } from "./product";
+export type { Zone };
 
 export interface Company {
   id: string;

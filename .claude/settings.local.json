@@ -27,7 +27,10 @@
       "Bash(del \"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\frontend\\components\\categories\\category-form-dialog.tsx\")",
       "Bash(timeout /t 3 /nobreak)",
       "Bash(python:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(\"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\frontend\\types\\vendor.ts\")",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []

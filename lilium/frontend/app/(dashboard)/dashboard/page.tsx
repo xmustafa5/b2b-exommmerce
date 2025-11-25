@@ -18,7 +18,7 @@ import { formatCurrency } from "@/lib/utils";
 export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: dashboardQueryKeys.stats(),
-    queryFn: vendorsApi.getDashboardStats,
+    queryFn: vendorsApi.getStats,
   });
 
   const statCards = [
