@@ -74,19 +74,15 @@ export class CompanyService {
 
       const company = await this.fastify.prisma.company.create({
         data: {
-          name: data.name,
+          nameEn: data.name,
           nameAr: data.nameAr,
           description: data.description,
-          descriptionAr: data.descriptionAr,
           logo: data.logo,
           email: data.email,
           phone: data.phone,
           address: data.address,
           zones: data.zones,
-          deliveryFees: data.deliveryFees || defaultDeliveryFees,
-          commissionRate,
-          minOrderAmount: data.minOrderAmount || 10000, // Default 10,000 IQD
-          maxDeliveryTime: data.maxDeliveryTime || 120, // Default 2 hours
+          commission: commissionRate,
           isActive: true
         }
       });
@@ -112,19 +108,15 @@ export class CompanyService {
       const company = await this.fastify.prisma.company.update({
         where: { id: companyId },
         data: {
-          name: data.name,
-          nameAr: data.nameAr,
-          description: data.description,
-          descriptionAr: data.descriptionAr,
-          logo: data.logo,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
-          zones: data.zones,
-          deliveryFees: data.deliveryFees,
-          commissionRate: data.commissionRate,
-          minOrderAmount: data.minOrderAmount,
-          maxDeliveryTime: data.maxDeliveryTime
+          ...(data.name && { nameEn: data.name }),
+          ...(data.nameAr && { nameAr: data.nameAr }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.logo !== undefined && { logo: data.logo }),
+          ...(data.email && { email: data.email }),
+          ...(data.phone && { phone: data.phone }),
+          ...(data.address !== undefined && { address: data.address }),
+          ...(data.zones && { zones: data.zones }),
+          ...(data.commissionRate !== undefined && { commission: data.commissionRate }),
         }
       });
 
@@ -193,7 +185,7 @@ export class CompanyService {
 
       if (filter.search) {
         where.OR = [
-          { name: { contains: filter.search, mode: 'insensitive' } },
+          { nameEn: { contains: filter.search, mode: 'insensitive' } },
           { nameAr: { contains: filter.search, mode: 'insensitive' } },
           { email: { contains: filter.search, mode: 'insensitive' } }
         ];
@@ -248,14 +240,16 @@ export class CompanyService {
           },
           _count: true,
           _sum: {
-            totalAmount: true
+            total: true
           }
         }),
-        // Vendor statistics
+        // Vendor statistics (COMPANY_ADMIN and COMPANY_USER)
         this.fastify.prisma.user.aggregate({
           where: {
             companyId,
-            role: 'VENDOR'
+            role: {
+              in: ['COMPANY_ADMIN', 'COMPANY_USER']
+            }
           },
           _count: true
         }),
@@ -285,18 +279,20 @@ export class CompanyService {
       // Calculate commission (assuming 10% default)
       const company = await this.fastify.prisma.company.findUnique({
         where: { id: companyId },
-        select: { commissionRate: true }
+        select: { commission: true }
       });
 
-      const commissionRate = (company?.commissionRate || 10) / 100;
-      const totalRevenue = orderStats._sum.totalAmount || 0;
+      const commissionRate = (company?.commission || 10) / 100;
+      const totalRevenue = orderStats._sum.total || 0;
       const totalCommission = totalRevenue * commissionRate;
 
-      // Get active vendors
+      // Get active vendors (COMPANY_ADMIN and COMPANY_USER)
       const activeVendors = await this.fastify.prisma.user.count({
         where: {
           companyId,
-          role: 'VENDOR',
+          role: {
+            in: ['COMPANY_ADMIN', 'COMPANY_USER']
+          },
           isActive: true
         }
       });
@@ -381,7 +377,9 @@ export class CompanyService {
       const vendors = await this.fastify.prisma.user.findMany({
         where: {
           companyId,
-          role: 'VENDOR'
+          role: {
+            in: ['COMPANY_ADMIN', 'COMPANY_USER']
+          }
         },
         select: {
           id: true,
@@ -503,10 +501,10 @@ export class CompanyService {
 
       const company = await this.fastify.prisma.company.findUnique({
         where: { id: companyId },
-        select: { commissionRate: true }
+        select: { commission: true }
       });
 
-      const commissionRate = (company?.commissionRate || 10) / 100;
+      const commissionRate = (company?.commission || 10) / 100;
 
       let totalRevenue = 0;
       let totalCommission = 0;
@@ -532,7 +530,7 @@ export class CompanyService {
         totalRevenue,
         totalCommission,
         totalPayout,
-        commissionRate: company?.commissionRate || 10
+        commissionRate: company?.commission || 10
       };
     } catch (error) {
       throw this.fastify.httpErrors.internalServerError('Failed to calculate payouts');

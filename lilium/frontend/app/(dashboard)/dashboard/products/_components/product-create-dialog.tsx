@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useCompanies } from "@/hooks/useCompanies";
 import { getErrorMessage } from "@/actions/config";
 import type { Zone } from "@/types/product";
 
@@ -63,6 +64,7 @@ export function ProductCreateDialog({
 }: ProductCreateDialogProps) {
   const createMutation = useCreateProduct();
   const { data: categories } = useCategories();
+  const { data: companiesData } = useCompanies();
 
   const {
     register,
@@ -338,11 +340,21 @@ export function ProductCreateDialog({
 
             <div className="space-y-2">
               <Label htmlFor="companyId">Company *</Label>
-              <Input
-                id="companyId"
-                placeholder="Enter company ID (temporary)"
-                {...register("companyId")}
-              />
+              <Select
+                value={companyId || ""}
+                onValueChange={(value) => setValue("companyId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companiesData?.companies.map((comp) => (
+                    <SelectItem key={comp.id} value={comp.id}>
+                      {comp.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.companyId && (
                 <p className="text-sm text-destructive">
                   {errors.companyId.message}

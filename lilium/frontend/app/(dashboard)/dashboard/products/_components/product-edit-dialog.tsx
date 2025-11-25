@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { useUpdateProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useCompanies } from "@/hooks/useCompanies";
 import { getErrorMessage } from "@/actions/config";
 import type { Product, Zone } from "@/types/product";
 
@@ -65,6 +66,7 @@ export function ProductEditDialog({
 }: ProductEditDialogProps) {
   const updateMutation = useUpdateProduct(product.id);
   const { data: categories } = useCategories();
+  const { data: companiesData } = useCompanies();
 
   const {
     register,
@@ -337,11 +339,21 @@ export function ProductEditDialog({
 
             <div className="space-y-2">
               <Label htmlFor="companyId">Company *</Label>
-              <Input
-                id="companyId"
-                placeholder="Enter company ID (temporary)"
-                {...register("companyId")}
-              />
+              <Select
+                value={watch("companyId") || ""}
+                onValueChange={(value) => setValue("companyId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companiesData?.companies.map((comp) => (
+                    <SelectItem key={comp.id} value={comp.id}>
+                      {comp.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.companyId && (
                 <p className="text-sm text-destructive">
                   {errors.companyId.message}

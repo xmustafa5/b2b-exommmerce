@@ -222,7 +222,7 @@ const vendorRoutes: FastifyPluginAsync = async (fastify) => {
   // Middleware to check if user is a vendor or company manager
   const requireVendorAccess = [
     authenticate,
-    requireRole([UserRole.VENDOR, UserRole.COMPANY_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN])
+    requireRole(UserRole.COMPANY_ADMIN, UserRole.COMPANY_USER, UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN)
   ];
 
   // Get vendor's company details
@@ -842,6 +842,24 @@ const vendorRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
+      // SUPER_ADMIN and LOCATION_ADMIN can see all orders without company restriction
+      if (request.user.role === UserRole.SUPER_ADMIN || request.user.role === UserRole.LOCATION_ADMIN) {
+        // Get all orders if admin doesn't have a company
+        const user = await fastify.prisma.user.findUnique({
+          where: { id: request.user.userId },
+          select: { companyId: true }
+        });
+
+        if (!user?.companyId) {
+          // Admin without company - return all orders
+          const result = await vendorService.getAllOrders(request.query);
+          return reply.send({
+            success: true,
+            ...result
+          });
+        }
+      }
+
       const company = await vendorService.getVendorCompany(request.user.userId);
       if (!company) {
         return reply.code(404).send({

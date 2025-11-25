@@ -149,18 +149,18 @@
 ### Company Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |
 |----------|--------|---------|----------|-------|
-| `/api/companies` | GET | ✅ | ⏳ | List companies |
-| `/api/companies` | POST | ✅ | ⏳ | Create company |
-| `/api/companies/:id` | GET | ✅ | ⏳ | Get company by ID |
-| `/api/companies/:id` | PUT | ✅ | ⏳ | Update company |
-| `/api/companies/:id/stats` | GET | ✅ | ⏳ | Get company statistics |
-| `/api/companies/:id/status` | PATCH | ✅ | ⏳ | Toggle company status |
-| `/api/companies/:id/delivery-fees` | PATCH | ✅ | ⏳ | Update delivery fees |
-| `/api/companies/:id/commission` | PATCH | ✅ | ⏳ | Update commission rate |
-| `/api/companies/:id/vendors` | GET | ✅ | ⏳ | Get company vendors |
-| `/api/companies/:id/products` | GET | ✅ | ⏳ | Get company products |
-| `/api/companies/zone/:zone` | GET | ✅ | ⏳ | Get companies by zone |
-| `/api/companies/:id/payouts` | GET | ✅ | ⏳ | Calculate company payouts |
+| `/api/companies` | GET | ✅ | ✅ | List companies - Dashboard CRUD page |
+| `/api/companies` | POST | ✅ | ✅ | Create company - Dashboard CRUD page |
+| `/api/companies/:id` | GET | ✅ | ✅ | Get company by ID - Dashboard |
+| `/api/companies/:id` | PUT | ✅ | ✅ | Update company - Dashboard CRUD page |
+| `/api/companies/:id/stats` | GET | ✅ | ✅ | Get company statistics - Dashboard |
+| `/api/companies/:id/status` | PATCH | ✅ | ✅ | Toggle company status - Dashboard |
+| `/api/companies/:id/delivery-fees` | PATCH | ✅ | ✅ | Update delivery fees - Dashboard |
+| `/api/companies/:id/commission` | PATCH | ✅ | ✅ | Update commission rate - Dashboard |
+| `/api/companies/:id/vendors` | GET | ✅ | ✅ | Get company vendors - Dashboard |
+| `/api/companies/:id/products` | GET | ✅ | ⏳ | Get company products - Dashboard (not in main page yet) |
+| `/api/companies/zone/:zone` | GET | ✅ | ⏳ | Get companies by zone - Mobile only |
+| `/api/companies/:id/payouts` | GET | ✅ | ⏳ | Calculate company payouts - Future feature |
 
 ### Upload Endpoints
 | Endpoint | Method | Backend | Frontend | Notes |

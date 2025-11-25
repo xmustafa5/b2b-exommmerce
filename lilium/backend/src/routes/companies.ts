@@ -480,7 +480,7 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
 
       const filter = {
         zone: zone as Zone,
-        isActive: isActive === 'true',
+        isActive: isActive !== undefined ? isActive === 'true' : undefined,
         search,
         page: parseInt(page) || 1,
         limit: parseInt(limit) || 20

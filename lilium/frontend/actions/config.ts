@@ -68,6 +68,13 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // Handle 403 Forbidden - show error message but don't redirect
+    // This means the user is authenticated but doesn't have permission
+    if (error.response?.status === 403) {
+      console.error("Access denied:", error.response.data?.message);
+      // You can add a toast notification here if you have a toast library
+    }
+
     return Promise.reject(error);
   }
 );

@@ -26,7 +26,8 @@
       "Bash(__NEW_LINE__ echo \"=== POST /api/categories - Create Electronics ===\")",
       "Bash(del \"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\frontend\\components\\categories\\category-form-dialog.tsx\")",
       "Bash(timeout /t 3 /nobreak)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

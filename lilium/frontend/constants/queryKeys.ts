@@ -36,6 +36,12 @@ export const companiesQueryKeys = {
   all: ["companies"] as const,
   list: (...args: any[]) => ["companies", "list", ...args] as const,
   detail: (id: string) => ["companies", "detail", id] as const,
+  stats: (id: string) => ["companies", "stats", id] as const,
+  vendors: (id: string) => ["companies", "vendors", id] as const,
+  products: (id: string) => ["companies", "products", id] as const,
+  byZone: (zone: string) => ["companies", "byZone", zone] as const,
+  payouts: (id: string, startDate: string, endDate: string) =>
+    ["companies", "payouts", id, startDate, endDate] as const,
 };
 
 export const vendorsQueryKeys = {

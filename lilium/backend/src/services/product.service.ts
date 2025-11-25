@@ -80,7 +80,7 @@ export class ProductService {
     ]);
 
     return {
-      products,
+      data: products,
       pagination: {
         page,
         limit,
