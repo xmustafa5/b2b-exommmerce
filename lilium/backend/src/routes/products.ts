@@ -17,7 +17,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         properties: {
           page: { type: 'number', minimum: 1, default: 1, description: 'Page number for pagination' },
           limit: { type: 'number', minimum: 1, maximum: 100, default: 20, description: 'Number of items per page' },
-          categoryId: { type: 'string', format: 'uuid', description: 'Filter by category ID' },
+          categoryId: { type: 'string', description: 'Filter by category ID' },
           minPrice: { type: 'number', minimum: 0, description: 'Minimum price filter' },
           maxPrice: { type: 'number', minimum: 0, description: 'Maximum price filter' },
           inStock: { type: 'boolean', description: 'Filter to show only in-stock products' },
@@ -199,7 +199,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['categoryId'],
         properties: {
-          categoryId: { type: 'string', format: 'uuid', description: 'Category ID to filter products' }
+          categoryId: { type: 'string', description: 'Category ID to filter products' }
         }
       },
       querystring: {
@@ -273,7 +273,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['id'],
         properties: {
-          id: { type: 'string', format: 'uuid', description: 'Product ID' }
+          id: { type: 'string', description: 'Product ID' }
         }
       },
       response: {
@@ -352,8 +352,8 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
             items: { type: 'string', format: 'uri' },
             description: 'Array of image URLs'
           },
-          categoryId: { type: 'string', format: 'uuid', description: 'Category ID' },
-          companyId: { type: 'string', format: 'uuid', description: 'Company/Vendor ID' },
+          categoryId: { type: 'string', description: 'Category ID' },
+          companyId: { type: 'string', description: 'Company/Vendor ID' },
           zones: {
             type: 'array',
             items: {
@@ -465,8 +465,8 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
             items: { type: 'string', format: 'uri' },
             description: 'Array of image URLs'
           },
-          categoryId: { type: 'string', format: 'uuid', description: 'Category ID' },
-          companyId: { type: 'string', format: 'uuid', description: 'Company/Vendor ID' },
+          categoryId: { type: 'string', description: 'Category ID' },
+          companyId: { type: 'string', description: 'Company/Vendor ID' },
           zones: {
             type: 'array',
             items: {
@@ -564,7 +564,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['id'],
         properties: {
-          id: { type: 'string', format: 'uuid', description: 'Product ID' }
+          id: { type: 'string', description: 'Product ID' }
         }
       },
       body: {

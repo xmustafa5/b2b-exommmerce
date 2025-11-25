@@ -5,15 +5,20 @@ import type {
   ProductFilters,
   ProductCreateInput,
   ProductUpdateInput,
+  StockUpdateInput,
+  BulkUpdateInput,
+  BulkDeleteInput,
 } from "@/types/product";
 
+// Get all products with pagination
 export function useProducts(filters?: ProductFilters) {
   return useQuery({
     queryKey: productsQueryKeys.list(filters),
-    queryFn: () => productsApi.getVendorProducts(filters),
+    queryFn: () => productsApi.getAll(filters),
   });
 }
 
+// Get single product by ID
 export function useProduct(id: string) {
   return useQuery({
     queryKey: productsQueryKeys.detail(id),
@@ -22,6 +27,24 @@ export function useProduct(id: string) {
   });
 }
 
+// Get featured products
+export function useFeaturedProducts(zones?: string) {
+  return useQuery({
+    queryKey: productsQueryKeys.featured(zones),
+    queryFn: () => productsApi.getFeatured(zones),
+  });
+}
+
+// Get products by category
+export function useProductsByCategory(categoryId: string, zones?: string) {
+  return useQuery({
+    queryKey: productsQueryKeys.byCategory(categoryId, zones),
+    queryFn: () => productsApi.getByCategory(categoryId, zones),
+    enabled: !!categoryId,
+  });
+}
+
+// Create new product
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
@@ -35,6 +58,7 @@ export function useCreateProduct() {
   });
 }
 
+// Update product
 export function useUpdateProduct(id: string) {
   const queryClient = useQueryClient();
 
@@ -51,6 +75,25 @@ export function useUpdateProduct(id: string) {
   });
 }
 
+// Update product stock
+export function useUpdateStock() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: StockUpdateInput }) =>
+      productsApi.updateStock(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({
+        queryKey: productsQueryKeys.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: productsQueryKeys.all,
+      });
+    },
+  });
+}
+
+// Delete product
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
 
@@ -64,15 +107,27 @@ export function useDeleteProduct() {
   });
 }
 
-export function useToggleProductActive() {
+// Bulk update products
+export function useBulkUpdateProducts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => productsApi.toggleActive(id),
-    onSuccess: (_, id) => {
+    mutationFn: (data: BulkUpdateInput) => productsApi.bulkUpdate(data),
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: productsQueryKeys.detail(id),
+        queryKey: productsQueryKeys.all,
       });
+    },
+  });
+}
+
+// Bulk delete products
+export function useBulkDeleteProducts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BulkDeleteInput) => productsApi.bulkDelete(data),
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: productsQueryKeys.all,
       });

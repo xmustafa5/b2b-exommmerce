@@ -5,10 +5,13 @@ import type {
   ProductUpdateInput,
   ProductFilters,
   ProductsResponse,
+  StockUpdateInput,
+  BulkUpdateInput,
+  BulkDeleteInput,
 } from "@/types/product";
 
 export const productsApi = {
-  // Get all products (paginated)
+  // Get all products with pagination and filters
   getAll: async (filters?: ProductFilters): Promise<ProductsResponse> => {
     const response = await apiClient.get<ProductsResponse>("/products", {
       params: filters,
@@ -16,15 +19,24 @@ export const productsApi = {
     return response.data;
   },
 
-  // Get vendor's products
-  getVendorProducts: async (
-    filters?: ProductFilters
-  ): Promise<ProductsResponse> => {
-    const response = await apiClient.get<ProductsResponse>(
-      "/vendors/products",
-      {
-        params: filters,
-      }
+  // Get featured products
+  getFeatured: async (zones?: string): Promise<Product[]> => {
+    const params = zones ? { zones } : {};
+    const response = await apiClient.get<Product[]>("/products/featured", {
+      params,
+    });
+    return response.data;
+  },
+
+  // Get products by category
+  getByCategory: async (
+    categoryId: string,
+    zones?: string
+  ): Promise<Product[]> => {
+    const params = zones ? { zones } : {};
+    const response = await apiClient.get<Product[]>(
+      `/products/category/${categoryId}`,
+      { params }
     );
     return response.data;
   },
@@ -47,52 +59,30 @@ export const productsApi = {
     return response.data;
   },
 
+  // Update stock
+  updateStock: async (
+    id: string,
+    data: StockUpdateInput
+  ): Promise<Product> => {
+    const response = await apiClient.patch<Product>(
+      `/products/${id}/stock`,
+      data
+    );
+    return response.data;
+  },
+
   // Delete product
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/products/${id}`);
   },
 
-  // Toggle product active status
-  toggleActive: async (id: string): Promise<Product> => {
-    const response = await apiClient.patch<Product>(`/products/${id}/toggle`);
-    return response.data;
+  // Bulk update products
+  bulkUpdate: async (data: BulkUpdateInput): Promise<void> => {
+    await apiClient.patch("/products/bulk", data);
   },
 
-  // Update stock
-  updateStock: async (
-    id: string,
-    quantity: number,
-    operation: "add" | "subtract" | "set"
-  ): Promise<Product> => {
-    const response = await apiClient.patch<Product>(`/products/${id}/stock`, {
-      quantity,
-      operation,
-    });
-    return response.data;
-  },
-
-  // Upload product image
-  uploadImage: async (
-    id: string,
-    file: File,
-    isPrimary = false
-  ): Promise<{ url: string }> => {
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("isPrimary", String(isPrimary));
-
-    const response = await apiClient.post<{ url: string }>(
-      `/products/${id}/images`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-    return response.data;
-  },
-
-  // Delete product image
-  deleteImage: async (productId: string, imageId: string): Promise<void> => {
-    await apiClient.delete(`/products/${productId}/images/${imageId}`);
+  // Bulk delete products
+  bulkDelete: async (data: BulkDeleteInput): Promise<void> => {
+    await apiClient.delete("/products/bulk", { data });
   },
 };

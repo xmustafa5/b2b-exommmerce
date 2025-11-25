@@ -1,78 +1,97 @@
+// Product types aligned with backend API
+
+export type Zone = "KARKH" | "RUSAFA";
+
 export interface Product {
   id: string;
-  name: string;
-  nameAr: string | null;
-  description: string | null;
-  descriptionAr: string | null;
   sku: string;
-  barcode: string | null;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
   price: number;
-  wholesalePrice: number | null;
-  costPrice: number | null;
+  compareAtPrice: number | null;
+  cost: number | null;
   stock: number;
-  minStock: number;
-  maxStock: number | null;
+  minOrderQty: number;
   unit: string;
-  isActive: boolean;
+  images: string[];
   categoryId: string;
-  vendorId: string;
+  companyId: string;
+  zones: Zone[];
+  isActive: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
   category?: {
     id: string;
-    name: string;
+    nameEn: string;
+    nameAr: string;
   };
-  vendor?: {
+  company?: {
     id: string;
-    name: string;
+    nameEn: string;
+    nameAr: string;
   };
-  images?: ProductImage[];
-}
-
-export interface ProductImage {
-  id: string;
-  url: string;
-  isPrimary: boolean;
-  productId: string;
 }
 
 export interface ProductCreateInput {
-  name: string;
-  nameAr?: string;
-  description?: string;
-  descriptionAr?: string;
   sku: string;
-  barcode?: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
   price: number;
-  wholesalePrice?: number;
-  costPrice?: number;
+  compareAtPrice?: number;
+  cost?: number;
   stock: number;
-  minStock?: number;
-  maxStock?: number;
+  minOrderQty?: number;
   unit?: string;
+  images?: string[];
   categoryId: string;
+  companyId: string;
+  zones: Zone[];
+  isActive?: boolean;
+  isFeatured?: boolean;
+  sortOrder?: number;
 }
 
-export interface ProductUpdateInput extends Partial<ProductCreateInput> {
-  isActive?: boolean;
-}
+export interface ProductUpdateInput extends Partial<ProductCreateInput> {}
 
 export interface ProductFilters {
-  search?: string;
-  categoryId?: string;
-  isActive?: boolean;
-  minPrice?: number;
-  maxPrice?: number;
   page?: number;
   limit?: number;
+  categoryId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  search?: string;
+  sortBy?: "createdAt" | "price" | "nameEn" | "nameAr" | "stock";
+  sortOrder?: "asc" | "desc";
+  zones?: string; // Comma-separated zones
 }
 
 export interface ProductsResponse {
   data: Product[];
-  meta: {
+  pagination: {
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   };
+}
+
+export interface StockUpdateInput {
+  quantity: number;
+  operation: "add" | "subtract" | "set";
+}
+
+export interface BulkUpdateInput {
+  ids: string[];
+  data: Partial<ProductUpdateInput>;
+}
+
+export interface BulkDeleteInput {
+  ids: string[];
 }

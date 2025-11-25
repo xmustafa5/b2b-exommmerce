@@ -11,9 +11,9 @@ export const productsQueryKeys = {
   all: ["products"] as const,
   list: (...args: any[]) => ["products", "list", ...args] as const,
   detail: (id: string) => ["products", "detail", id] as const,
-  byVendor: (vendorId: string) => ["products", "byVendor", vendorId] as const,
-  byCategory: (categoryId: string) =>
-    ["products", "byCategory", categoryId] as const,
+  featured: (zones?: string) => ["products", "featured", zones] as const,
+  byCategory: (categoryId: string, zones?: string) =>
+    ["products", "byCategory", categoryId, zones] as const,
 };
 
 export const ordersQueryKeys = {

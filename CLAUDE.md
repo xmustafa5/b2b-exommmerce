@@ -676,3 +676,102 @@ npm run start                     # Serve production build
 expo build:ios                    # iOS production build
 expo build:android                # Android production build
 ```
+
+---
+
+## DASHBOARD PAGE STRUCTURE PATTERN (CRITICAL - REQUIRED FOR ALL CRUD PAGES)
+
+**When the user provides API endpoints, ALWAYS follow the Categories page structure:**
+
+### Required Folder Structure
+```
+app/(dashboard)/dashboard/[entity]/
+├── _components/                      # REQUIRED folder
+│   ├── [entity]-create-dialog.tsx   # Create dialog
+│   ├── [entity]-edit-dialog.tsx     # Edit dialog
+│   ├── [entity]-delete-dialog.tsx   # Delete dialog
+│   └── [entity]-[other]-dialog.tsx  # Additional dialogs (stock, etc.)
+└── page.tsx                          # Main list page
+```
+
+### Implementation Steps (ALWAYS FOLLOW IN ORDER)
+
+#### Step 1: Create TypeScript Types in `types/[entity].ts`
+- Match backend API schema exactly
+- Include all request/response interfaces
+- Add filter and pagination types
+
+#### Step 2: Add Query Keys in `constants/queryKeys.ts`
+```typescript
+export const [entity]QueryKeys = {
+  all: ["[entity]"] as const,
+  list: (...args: any[]) => ["[entity]", "list", ...args] as const,
+  detail: (id: string) => ["[entity]", "detail", id] as const,
+};
+```
+
+#### Step 3: Create API Actions in `actions/[entity].ts`
+- Implement all CRUD endpoints
+- Use typed axios calls with proper error handling
+- Return properly typed responses
+
+#### Step 4: Create Custom Hooks in `hooks/use[Entity].ts`
+- useEntities() - list with filters
+- useEntity(id) - get by ID
+- useCreateEntity() - create mutation
+- useUpdateEntity(id) - update mutation
+- useDeleteEntity() - delete mutation
+
+#### Step 5: Create Dialog Components in `_components/`
+
+**Create Dialog (`[entity]-create-dialog.tsx`):**
+- Use Zod schema for validation
+- Use react-hook-form with zodResolver
+- Reset form when dialog opens (useEffect)
+- Show loading state on submit button
+- Close dialog on success
+
+**Edit Dialog (`[entity]-edit-dialog.tsx`):**
+- Accept entity prop
+- Pre-populate form with entity data
+- Same validation as create
+
+**Delete Dialog (`[entity]-delete-dialog.tsx`):**
+- Show confirmation message
+- Display entity name/identifier
+- Show loading state on delete button
+
+#### Step 6: Create Main Page (`page.tsx`)
+
+**Required State:**
+```typescript
+const [filters, setFilters] = useState<EntityFilters>({});
+const [search, setSearch] = useState("");
+const [createDialogOpen, setCreateDialogOpen] = useState(false);
+const [editDialogOpen, setEditDialogOpen] = useState(false);
+const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [editingEntity, setEditingEntity] = useState<Entity | null>(null);
+const [deletingEntity, setDeletingEntity] = useState<Entity | null>(null);
+```
+
+**Required UI Sections:**
+1. Header component with title
+2. Actions bar with search and "Add" button
+3. Card with Table showing data
+4. Action dropdown menu for each row (Edit, Delete)
+5. All dialog components at the bottom
+
+### Critical Rules
+1. ✅ **ALWAYS create `_components/` folder** with separate dialog files
+2. ✅ **ALWAYS use Zod + react-hook-form** for all forms
+3. ✅ **ALWAYS reset forms** when dialogs open
+4. ✅ **ALWAYS show loading states** with `<Loader2>` icon
+5. ✅ **ALWAYS use custom hooks** from `hooks/` folder
+6. ✅ **ALWAYS close dialogs** on successful mutations
+7. ✅ **ALWAYS invalidate queries** after mutations
+8. ✅ **Main page = default export**, dialogs = named exports
+9. ✅ **ALWAYS follow naming**: `[entity]-[action]-dialog.tsx`
+10. ✅ **NEVER use inline forms** in main page - always use dialogs
+
+### Reference Implementation
+See `app/(dashboard)/dashboard/categories/` for the complete reference implementation that MUST be followed for all new CRUD pages.
