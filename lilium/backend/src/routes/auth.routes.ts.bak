@@ -53,7 +53,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const parsed = registerSchema.parse(request.body);
       const result = await authService.register(parsed);
-    return reply.code(201).send(result);
+      return reply.code(201).send(result);
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(400).send({ error: error.message || 'Registration failed' });
+    }
   });
 
   /**

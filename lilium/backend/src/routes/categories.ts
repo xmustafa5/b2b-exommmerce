@@ -2,6 +2,12 @@ import { FastifyPluginAsync } from 'fastify';
 import { CategoryService } from '../services/category.service';
 import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
+import { handleError } from '../utils/errors';
+import {
+  createCategorySchema,
+  updateCategorySchema,
+  reorderCategoriesSchema,
+} from '../types/validation';
 
 const categoryRoutes: FastifyPluginAsync = async (fastify) => {
   const categoryService = new CategoryService(fastify);
@@ -84,7 +90,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
       const categories = await categoryService.getCategories(includeInactive === 'true');
       return reply.send(categories);
     } catch (error) {
-      return reply.code(500).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -152,7 +158,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
       const stats = await categoryService.getCategoryStats();
       return reply.send(stats);
     } catch (error) {
-      return reply.code(500).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -239,7 +245,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
       const category = await categoryService.getCategoryById(id);
       return reply.send(category);
     } catch (error) {
-      return reply.code(404).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -338,10 +344,11 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const category = await categoryService.createCategory(request.body);
+      const data = createCategorySchema.parse(request.body);
+      const category = await categoryService.createCategory(data);
       return reply.code(201).send(category);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -456,10 +463,11 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
-      const category = await categoryService.updateCategory(id, request.body);
+      const data = updateCategorySchema.parse(request.body);
+      const category = await categoryService.updateCategory(id, data);
       return reply.send(category);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -533,10 +541,11 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const result = await categoryService.reorderCategories(request.body);
+      const data = reorderCategoriesSchema.parse(request.body);
+      const result = await categoryService.reorderCategories(data);
       return reply.send(result);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -626,7 +635,7 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await categoryService.deleteCategory(id, reassignToId);
       return reply.send(result);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 };

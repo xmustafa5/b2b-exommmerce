@@ -30,7 +30,11 @@
       "Bash(npm run dev:*)",
       "Bash(\"c:\\Users\\Asus-x88\\Documents\\GitHub\\lilium project\\b2b-exommmerce\\lilium\\frontend\\types\\vendor.ts\")",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

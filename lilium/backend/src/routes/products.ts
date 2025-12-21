@@ -1,7 +1,15 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ProductService } from '../services/product.service';
 import { authenticate, requireRole } from '../middleware/auth';
-import { UserRole, Zone } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import { handleError } from '../utils/errors';
+import {
+  productQuerySchema,
+  createProductSchema,
+  updateProductSchema,
+  updateStockSchema,
+  bulkProductSchema,
+} from '../types/validation';
 
 const productRoutes: FastifyPluginAsync = async (fastify) => {
   const productService = new ProductService(fastify);
@@ -87,40 +95,27 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const {
-        page = 1,
-        limit = 20,
-        categoryId,
-        minPrice,
-        maxPrice,
-        inStock,
-        search,
-        sortBy = 'createdAt',
-        sortOrder = 'desc',
-        zones
-      } = request.query;
-
-      // Parse zones if provided as string
-      const parsedZones = zones ? (Array.isArray(zones) ? zones : zones.split(',')) : undefined;
+      const query = productQuerySchema.parse(request.query);
+      const parsedZones = query.zones ? query.zones.split(',') : undefined;
 
       const result = await productService.getProducts(
-        parseInt(page),
-        parseInt(limit),
+        query.page,
+        query.limit,
         {
-          categoryId,
-          minPrice: minPrice ? parseFloat(minPrice) : undefined,
-          maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+          categoryId: query.categoryId,
+          minPrice: query.minPrice,
+          maxPrice: query.maxPrice,
           zones: parsedZones,
-          inStock: inStock === 'true',
-          search,
+          inStock: query.inStock === 'true',
+          search: query.search,
         },
-        sortBy,
-        sortOrder
+        query.sortBy,
+        query.sortOrder
       );
 
       return reply.send(result);
     } catch (error) {
-      return reply.code(500).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -185,7 +180,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
       const products = await productService.getFeaturedProducts(parsedZones);
       return reply.send(products);
     } catch (error) {
-      return reply.code(500).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -259,7 +254,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
       const products = await productService.getProductsByCategory(categoryId, parsedZones);
       return reply.send(products);
     } catch (error) {
-      return reply.code(500).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -320,7 +315,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
       const product = await productService.getProductById(id);
       return reply.send(product);
     } catch (error) {
-      return reply.code(404).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -424,10 +419,11 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const product = await productService.createProduct(request.body);
+      const data = createProductSchema.parse(request.body);
+      const product = await productService.createProduct(data);
       return reply.code(201).send(product);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -545,10 +541,11 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
-      const product = await productService.updateProduct(id, request.body);
+      const data = updateProductSchema.parse(request.body);
+      const product = await productService.updateProduct(id, data);
       return reply.send(product);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -629,12 +626,12 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
-      const { quantity, operation } = request.body;
+      const { quantity, operation } = updateStockSchema.parse(request.body);
 
       const product = await productService.updateStock(id, quantity, operation);
       return reply.send(product);
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -694,7 +691,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await productService.deleteProduct(id);
       return reply.send(result);
     } catch (error) {
-      return reply.code(404).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -794,10 +791,10 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const { ids, data } = request.body;
+      const { ids, data } = bulkProductSchema.parse(request.body);
 
       const updates = ids.map((id: string) =>
-        productService.updateProduct(id, data)
+        productService.updateProduct(id, data || {})
       );
 
       const products = await Promise.all(updates);
@@ -806,7 +803,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         products
       });
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -866,7 +863,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const { ids } = request.body;
+      const { ids } = bulkProductSchema.parse(request.body);
 
       const deletes = ids.map((id: string) =>
         productService.deleteProduct(id)
@@ -877,7 +874,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         message: `${ids.length} products deleted successfully`
       });
     } catch (error) {
-      return reply.code(400).send(error);
+      return handleError(error, reply, fastify.log);
     }
   });
 };

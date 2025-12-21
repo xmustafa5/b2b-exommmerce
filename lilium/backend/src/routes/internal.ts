@@ -937,7 +937,7 @@ const internalRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({
       success: true,
       roles: {
-        dashboard: [UserRole.VENDOR, UserRole.COMPANY_MANAGER],
+        dashboard: [UserRole.COMPANY_ADMIN, UserRole.COMPANY_ADMIN],
         mobile: [UserRole.SHOP_OWNER]
       },
       message: 'Available roles for user creation'

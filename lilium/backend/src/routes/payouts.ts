@@ -122,7 +122,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Only company managers and vendors can request payouts
-      if (![UserRole.COMPANY_MANAGER, UserRole.VENDOR].includes(user.role)) {
+      if (![UserRole.COMPANY_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Only company managers and vendors can request payouts'
@@ -203,7 +203,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const user = request.user;
 
-      if (![UserRole.COMPANY_MANAGER, UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.COMPANY_ADMIN, UserRole.COMPANY_ADMIN, UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Insufficient permissions'
@@ -220,7 +220,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Check if user can access this company's data
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         if (user.companyId !== companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -314,7 +314,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
       };
 
       // Set company filter based on user role
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         filter.companyId = user.companyId;
       } else if (query.companyId) {
         filter.companyId = query.companyId;
@@ -404,7 +404,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Check authorization
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         if (user.companyId !== targetCompanyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -426,7 +426,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update payout status (Admin only)
   fastify.patch('/:id/status', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['payouts'],
       summary: 'Update payout status',
@@ -697,7 +697,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Check authorization
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         if (user.companyId !== targetCompanyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -786,7 +786,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      if (![UserRole.COMPANY_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.COMPANY_ADMIN, UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Only company managers and admins can schedule automatic payouts'
@@ -816,7 +816,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Get pending payouts for review (Admin only)
   fastify.get('/pending', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['payouts'],
       summary: 'Get pending payouts for review',
@@ -879,7 +879,7 @@ const payoutRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Bulk approve payouts (Admin only)
   fastify.post('/bulk-approve', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['payouts'],
       summary: 'Bulk approve payouts',

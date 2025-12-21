@@ -439,6 +439,13 @@
 - [ ] Add zone validation (Karkh/Rusafa) (simplified for MVP)
 
 **Backend Tasks:**
+- [✅] Create address management API (CRUD endpoints for delivery addresses):
+  - [✅] GET /api/addresses (list user's addresses)
+  - [✅] GET /api/addresses/:id (get address by ID)
+  - [✅] POST /api/addresses (create address)
+  - [✅] PUT /api/addresses/:id (update address)
+  - [✅] DELETE /api/addresses/:id (delete address)
+  - [✅] PATCH /api/addresses/:id/default (set as default)
 - [ ] Create cart validation endpoint (not implemented - frontend validation used)
 - [✅] Enhance order creation API (order creation API complete with all features)
 - [✅] Add delivery fee calculation (delivery fee calculation in order service)
@@ -497,14 +504,15 @@
 ### **Module 4.1: Analytics & Reports** (Week 13)
 
 **Backend Tasks:**
-- [ ] Create analytics APIs:
-  - GET /api/analytics/dashboard
-  - GET /api/analytics/sales
-  - GET /api/analytics/products
-  - GET /api/analytics/notify-requests
-- [ ] Implement data aggregation queries
-- [ ] Add date range filtering
-- [ ] Create export functionality (CSV/PDF)
+- [✅] Create analytics APIs:
+  - [✅] GET /api/analytics/dashboard (dashboard overview stats)
+  - [✅] GET /api/analytics/sales (sales analytics with trends)
+  - [✅] GET /api/analytics/products (product analytics with top sellers)
+  - [✅] GET /api/analytics/notify-requests (notify-me request analytics)
+  - [✅] GET /api/analytics/export (placeholder for CSV/PDF export)
+- [✅] Implement data aggregation queries (Prisma aggregations for all metrics)
+- [✅] Add date range filtering (startDate, endDate, zone query params)
+- [ ] Create export functionality (CSV/PDF) - placeholder added, implementation pending
 
 **Dashboard Tasks:**
 - [ ] Create analytics dashboard:

@@ -4,10 +4,11 @@ import { Category, Prisma } from '@prisma/client';
 interface CategoryCreateInput {
   nameEn: string;
   nameAr: string;
+  slug?: string;
   description?: string;
   image?: string;
   parentId?: string;
-  displayOrder?: number;
+  sortOrder?: number;
   isActive?: boolean;
 }
 
@@ -38,7 +39,7 @@ export class CategoryService {
         },
       },
       orderBy: [
-        { displayOrder: 'asc' },
+        { sortOrder: 'asc' },
         { nameEn: 'asc' },
       ],
     });
@@ -104,13 +105,13 @@ export class CategoryService {
       }
     }
 
-    // Auto-assign display order if not provided
-    if (!data.displayOrder) {
+    // Auto-assign sort order if not provided
+    if (!data.sortOrder) {
       const maxOrder = await this.fastify.prisma.category.aggregate({
         where: { parentId: data.parentId || null },
-        _max: { displayOrder: true },
+        _max: { sortOrder: true },
       });
-      data.displayOrder = (maxOrder._max.displayOrder || 0) + 1;
+      data.sortOrder = (maxOrder._max.sortOrder || 0) + 1;
     }
 
     // Generate slug from English name
@@ -248,11 +249,11 @@ export class CategoryService {
   }
 
   // Reorder categories
-  async reorderCategories(orders: Array<{ id: string; displayOrder: number }>) {
-    const updates = orders.map(({ id, displayOrder }) =>
+  async reorderCategories(orders: Array<{ id: string; sortOrder: number }>) {
+    const updates = orders.map(({ id, sortOrder }) =>
       this.fastify.prisma.category.update({
         where: { id },
-        data: { displayOrder },
+        data: { sortOrder },
       })
     );
 

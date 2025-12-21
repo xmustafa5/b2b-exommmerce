@@ -101,7 +101,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = bodyCompanyId;
 
       // Company managers can only create settlements for their own company
-      if (user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN) {
         if (bodyCompanyId && bodyCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -109,7 +109,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
-      } else if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      } else if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Only admins and company managers can create settlements'
@@ -247,7 +247,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = queryCompanyId || user.companyId;
 
       // Non-admin users can only view their company's summary
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         if (queryCompanyId && queryCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -376,7 +376,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = bodyCompanyId;
 
       // Company managers can only reconcile for their own company
-      if (user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN) {
         if (bodyCompanyId && bodyCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -384,7 +384,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
-      } else if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      } else if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Only admins and company managers can reconcile cash'
@@ -496,7 +496,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Verify user has permission for this order
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         const order = await fastify.prisma.order.findFirst({
           where: {
             id: orderId,
@@ -614,7 +614,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = queryCompanyId || user.companyId;
 
       // Non-admin users can only view their company's pending cash
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         if (queryCompanyId && queryCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -730,7 +730,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = bodyCompanyId || user.companyId;
 
       // Company managers can only process for their own company
-      if (user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN) {
         if (bodyCompanyId && bodyCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -738,7 +738,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
-      } else if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      } else if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Only admins and company managers can process settlements'
@@ -766,7 +766,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Verify settlement (Admin only)
   fastify.patch('/:settlementId/verify', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['settlements'],
       summary: 'Verify and approve settlement',
@@ -980,7 +980,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = queryCompanyId || user.companyId;
 
       // Non-admin users can only view their company's history
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         if (queryCompanyId && queryCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -1011,7 +1011,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Calculate platform earnings (Admin only)
   fastify.get('/platform-earnings', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['settlements'],
       summary: 'Calculate platform earnings for a period',
@@ -1232,7 +1232,7 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = queryCompanyId || user.companyId;
 
       // Non-admin users can only view their company's cash flow
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         if (queryCompanyId && queryCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',

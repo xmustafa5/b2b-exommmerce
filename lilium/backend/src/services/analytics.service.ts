@@ -1,18 +1,75 @@
 import { FastifyInstance } from 'fastify';
-import { OrderStatus, UserRole } from '@prisma/client';
+import { Zone, OrderStatus, UserRole } from '@prisma/client';
 
+// Shared interfaces
 interface DateRange {
   startDate: Date;
   endDate: Date;
 }
 
+interface DateRangeFilter {
+  startDate?: Date;
+  endDate?: Date;
+  zone?: Zone;
+}
+
+// Dashboard stats for admin
 interface DashboardStats {
+  totalOrders: number;
+  totalSales: number;
+  totalProducts: number;
+  totalUsers: number;
+  totalCategories: number;
+  avgOrderValue: number;
+  pendingOrders: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  activePromotions: number;
+  recentOrders: any[];
+  salesByZone: { zone: Zone; total: number; count: number }[];
+  ordersByStatus: { status: OrderStatus; count: number }[];
+}
+
+// Sales stats
+interface SalesStats {
+  totalSales: number;
+  totalOrders: number;
+  avgOrderValue: number;
+  salesByDay: { date: string; total: number; count: number }[];
+  salesByZone: { zone: Zone; total: number; count: number }[];
+  salesByPaymentMethod: { method: string; total: number; count: number }[];
+  topCustomers: { userId: string; name: string; businessName: string | null; total: number; orderCount: number }[];
+}
+
+// Product stats
+interface ProductStats {
+  totalProducts: number;
+  activeProducts: number;
+  featuredProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  topSellingProducts: any[];
+  productsByCategory: { categoryId: string; categoryName: string; count: number }[];
+  revenueByCategory: { categoryId: string; categoryName: string; revenue: number }[];
+}
+
+// Notify request stats
+interface NotifyRequestStats {
+  totalRequests: number;
+  pendingRequests: number;
+  notifiedRequests: number;
+  requestsByProduct: { productId: string; productName: string; count: number }[];
+  requestsTrend: { date: string; count: number }[];
+}
+
+// Vendor dashboard stats
+interface VendorDashboardStats {
   revenue: {
     total: number;
     today: number;
     thisWeek: number;
     thisMonth: number;
-    growth: number; // Percentage compared to last period
+    growth: number;
   };
   orders: {
     total: number;
@@ -28,7 +85,7 @@ interface DashboardStats {
     total: number;
     active: number;
     inactive: number;
-    lowStock: number; // Products with stock < 10
+    lowStock: number;
     outOfStock: number;
     bestSelling: Array<{
       productId: string;
@@ -39,7 +96,7 @@ interface DashboardStats {
   };
   customers: {
     total: number;
-    new: number; // Last 30 days
+    new: number;
     returning: number;
     topCustomers: Array<{
       userId: string;
@@ -52,7 +109,7 @@ interface DashboardStats {
     averageOrderValue: number;
     conversionRate: number;
     fulfillmentRate: number;
-    averageDeliveryTime: number; // In hours
+    averageDeliveryTime: number;
   };
 }
 
@@ -93,14 +150,421 @@ interface CommissionReport {
 }
 
 export class AnalyticsService {
-  private fastify: FastifyInstance;
+  constructor(private fastify: FastifyInstance) {}
 
-  constructor(fastify: FastifyInstance) {
-    this.fastify = fastify;
+  // ============================================
+  // Admin Dashboard Analytics
+  // ============================================
+
+  // Get dashboard overview stats
+  async getDashboardStats(filter: DateRangeFilter = {}): Promise<DashboardStats> {
+    const { startDate, endDate, zone } = filter;
+
+    const dateFilter: any = {};
+    if (startDate) dateFilter.gte = startDate;
+    if (endDate) dateFilter.lte = endDate;
+
+    const orderWhereClause: any = {};
+    if (Object.keys(dateFilter).length > 0) orderWhereClause.createdAt = dateFilter;
+    if (zone) orderWhereClause.zone = zone;
+
+    // Run all queries in parallel for performance
+    const [
+      totalOrders,
+      totalSalesResult,
+      totalProducts,
+      totalUsers,
+      totalCategories,
+      pendingOrders,
+      lowStockProducts,
+      outOfStockProducts,
+      activePromotions,
+      recentOrders,
+      salesByZoneResult,
+      ordersByStatusResult,
+    ] = await Promise.all([
+      this.fastify.prisma.order.count({ where: orderWhereClause }),
+      this.fastify.prisma.order.aggregate({
+        where: { ...orderWhereClause, status: { notIn: ['CANCELLED', 'REFUNDED'] } },
+        _sum: { total: true },
+      }),
+      this.fastify.prisma.product.count({ where: zone ? { zones: { has: zone } } : {} }),
+      this.fastify.prisma.user.count({ where: { role: 'SHOP_OWNER', isActive: true } }),
+      this.fastify.prisma.category.count({ where: { isActive: true } }),
+      this.fastify.prisma.order.count({ where: { ...orderWhereClause, status: 'PENDING' } }),
+      this.fastify.prisma.product.count({ where: { stock: { gt: 0, lt: 10 }, isActive: true } }),
+      this.fastify.prisma.product.count({ where: { stock: 0, isActive: true } }),
+      this.fastify.prisma.promotion.count({
+        where: {
+          isActive: true,
+          startDate: { lte: new Date() },
+          endDate: { gte: new Date() },
+        },
+      }),
+      this.fastify.prisma.order.findMany({
+        where: orderWhereClause,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { name: true, businessName: true } },
+          items: { include: { product: { select: { nameEn: true, nameAr: true } } } },
+        },
+      }),
+      this.fastify.prisma.order.groupBy({
+        by: ['zone'],
+        where: { ...orderWhereClause, status: { notIn: ['CANCELLED', 'REFUNDED'] } },
+        _sum: { total: true },
+        _count: true,
+      }),
+      this.fastify.prisma.order.groupBy({
+        by: ['status'],
+        where: orderWhereClause,
+        _count: true,
+      }),
+    ]);
+
+    const totalSales = totalSalesResult._sum.total || 0;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    return {
+      totalOrders,
+      totalSales,
+      totalProducts,
+      totalUsers,
+      totalCategories,
+      avgOrderValue: Math.round(avgOrderValue * 100) / 100,
+      pendingOrders,
+      lowStockProducts,
+      outOfStockProducts,
+      activePromotions,
+      recentOrders,
+      salesByZone: salesByZoneResult.map((item) => ({
+        zone: item.zone,
+        total: item._sum.total || 0,
+        count: item._count,
+      })),
+      ordersByStatus: ordersByStatusResult.map((item) => ({
+        status: item.status,
+        count: item._count,
+      })),
+    };
   }
 
+  // Get sales analytics
+  async getSalesStats(filter: DateRangeFilter = {}): Promise<SalesStats> {
+    const { startDate, endDate, zone } = filter;
+
+    const effectiveStartDate = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const effectiveEndDate = endDate || new Date();
+
+    const orderWhereClause: any = {
+      createdAt: { gte: effectiveStartDate, lte: effectiveEndDate },
+      status: { notIn: ['CANCELLED', 'REFUNDED'] },
+    };
+    if (zone) orderWhereClause.zone = zone;
+
+    const [
+      totalSalesResult,
+      totalOrders,
+      salesByZoneResult,
+      salesByPaymentMethodResult,
+      topCustomersResult,
+      dailySalesResult,
+    ] = await Promise.all([
+      this.fastify.prisma.order.aggregate({
+        where: orderWhereClause,
+        _sum: { total: true },
+      }),
+      this.fastify.prisma.order.count({ where: orderWhereClause }),
+      this.fastify.prisma.order.groupBy({
+        by: ['zone'],
+        where: orderWhereClause,
+        _sum: { total: true },
+        _count: true,
+      }),
+      this.fastify.prisma.order.groupBy({
+        by: ['paymentMethod'],
+        where: { ...orderWhereClause, paymentMethod: { not: null } },
+        _sum: { total: true },
+        _count: true,
+      }),
+      this.fastify.prisma.order.groupBy({
+        by: ['userId'],
+        where: orderWhereClause,
+        _sum: { total: true },
+        _count: true,
+        orderBy: { _sum: { total: 'desc' } },
+        take: 10,
+      }),
+      zone
+        ? this.fastify.prisma.$queryRaw`
+            SELECT
+              DATE("createdAt") as date,
+              SUM(total) as total,
+              COUNT(*) as count
+            FROM "Order"
+            WHERE "createdAt" >= ${effectiveStartDate}
+              AND "createdAt" <= ${effectiveEndDate}
+              AND status NOT IN ('CANCELLED', 'REFUNDED')
+              AND zone = ${zone}
+            GROUP BY DATE("createdAt")
+            ORDER BY date ASC
+          `
+        : this.fastify.prisma.$queryRaw`
+            SELECT
+              DATE("createdAt") as date,
+              SUM(total) as total,
+              COUNT(*) as count
+            FROM "Order"
+            WHERE "createdAt" >= ${effectiveStartDate}
+              AND "createdAt" <= ${effectiveEndDate}
+              AND status NOT IN ('CANCELLED', 'REFUNDED')
+            GROUP BY DATE("createdAt")
+            ORDER BY date ASC
+          ` as Promise<{ date: Date; total: number; count: bigint }[]>,
+    ]);
+
+    const customerIds = topCustomersResult.map((c) => c.userId);
+    const customers = await this.fastify.prisma.user.findMany({
+      where: { id: { in: customerIds } },
+      select: { id: true, name: true, businessName: true },
+    });
+    const customerMap = new Map(customers.map((c) => [c.id, c]));
+
+    const totalSales = totalSalesResult._sum.total || 0;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    return {
+      totalSales,
+      totalOrders,
+      avgOrderValue: Math.round(avgOrderValue * 100) / 100,
+      salesByDay: dailySalesResult.map((item) => ({
+        date: item.date.toISOString().split('T')[0],
+        total: Number(item.total) || 0,
+        count: Number(item.count) || 0,
+      })),
+      salesByZone: salesByZoneResult.map((item) => ({
+        zone: item.zone,
+        total: item._sum.total || 0,
+        count: item._count,
+      })),
+      salesByPaymentMethod: salesByPaymentMethodResult.map((item) => ({
+        method: item.paymentMethod || 'unknown',
+        total: item._sum.total || 0,
+        count: item._count,
+      })),
+      topCustomers: topCustomersResult.map((item) => {
+        const customer = customerMap.get(item.userId);
+        return {
+          userId: item.userId,
+          name: customer?.name || 'Unknown',
+          businessName: customer?.businessName || null,
+          total: item._sum.total || 0,
+          orderCount: item._count,
+        };
+      }),
+    };
+  }
+
+  // Get product analytics
+  async getProductStats(filter: DateRangeFilter = {}): Promise<ProductStats> {
+    const { startDate, endDate, zone } = filter;
+
+    const productWhereClause: any = {};
+    if (zone) productWhereClause.zones = { has: zone };
+
+    const orderItemDateFilter: any = {};
+    if (startDate) orderItemDateFilter.gte = startDate;
+    if (endDate) orderItemDateFilter.lte = endDate;
+
+    const [
+      totalProducts,
+      activeProducts,
+      featuredProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      productsByCategory,
+      topSellingProducts,
+    ] = await Promise.all([
+      this.fastify.prisma.product.count({ where: productWhereClause }),
+      this.fastify.prisma.product.count({ where: { ...productWhereClause, isActive: true } }),
+      this.fastify.prisma.product.count({ where: { ...productWhereClause, isFeatured: true, isActive: true } }),
+      this.fastify.prisma.product.count({ where: { ...productWhereClause, stock: { gt: 0, lt: 10 }, isActive: true } }),
+      this.fastify.prisma.product.count({ where: { ...productWhereClause, stock: 0, isActive: true } }),
+      this.fastify.prisma.product.groupBy({
+        by: ['categoryId'],
+        where: productWhereClause,
+        _count: true,
+      }),
+      this.fastify.prisma.orderItem.groupBy({
+        by: ['productId'],
+        where: {
+          order: {
+            status: { notIn: ['CANCELLED', 'REFUNDED'] },
+            ...(Object.keys(orderItemDateFilter).length > 0 ? { createdAt: orderItemDateFilter } : {}),
+          },
+        },
+        _sum: { quantity: true, total: true },
+        orderBy: { _sum: { total: 'desc' } },
+        take: 20,
+      }),
+    ]);
+
+    const categoryIds = productsByCategory.map((p) => p.categoryId);
+    const categories = await this.fastify.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, nameEn: true },
+    });
+    const categoryMap = new Map(categories.map((c) => [c.id, c.nameEn]));
+
+    const productIds = topSellingProducts.map((p) => p.productId);
+    const products = await this.fastify.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, nameEn: true, nameAr: true, sku: true, stock: true, price: true, images: true, category: { select: { nameEn: true } } },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    const revenueByCategory = await this.fastify.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: {
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          ...(Object.keys(orderItemDateFilter).length > 0 ? { createdAt: orderItemDateFilter } : {}),
+        },
+      },
+      _sum: { total: true },
+    });
+
+    const allProductsForRevenue = await this.fastify.prisma.product.findMany({
+      where: { id: { in: revenueByCategory.map(r => r.productId) } },
+      select: { id: true, categoryId: true, category: { select: { nameEn: true } } },
+    });
+    const productCategoryMap = new Map(allProductsForRevenue.map((p) => [p.id, { categoryId: p.categoryId, categoryName: p.category?.nameEn || 'Unknown' }]));
+
+    const categoryRevenueMap = new Map<string, { categoryId: string; categoryName: string; revenue: number }>();
+    for (const item of revenueByCategory) {
+      const categoryInfo = productCategoryMap.get(item.productId);
+      if (categoryInfo) {
+        const existing = categoryRevenueMap.get(categoryInfo.categoryId);
+        if (existing) {
+          existing.revenue += item._sum.total || 0;
+        } else {
+          categoryRevenueMap.set(categoryInfo.categoryId, {
+            categoryId: categoryInfo.categoryId,
+            categoryName: categoryInfo.categoryName,
+            revenue: item._sum.total || 0,
+          });
+        }
+      }
+    }
+
+    return {
+      totalProducts,
+      activeProducts,
+      featuredProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      topSellingProducts: topSellingProducts.map((item) => {
+        const product = productMap.get(item.productId);
+        return {
+          productId: item.productId,
+          name: product?.nameEn || 'Unknown',
+          nameAr: product?.nameAr || 'Unknown',
+          sku: product?.sku || '',
+          stock: product?.stock || 0,
+          price: product?.price || 0,
+          image: product?.images?.[0] || null,
+          category: product?.category?.nameEn || 'Unknown',
+          totalQuantitySold: item._sum.quantity || 0,
+          totalRevenue: item._sum.total || 0,
+        };
+      }),
+      productsByCategory: productsByCategory.map((item) => ({
+        categoryId: item.categoryId,
+        categoryName: categoryMap.get(item.categoryId) || 'Unknown',
+        count: item._count,
+      })),
+      revenueByCategory: Array.from(categoryRevenueMap.values()).sort((a, b) => b.revenue - a.revenue),
+    };
+  }
+
+  // Get notify request analytics
+  async getNotifyRequestStats(filter: DateRangeFilter = {}): Promise<NotifyRequestStats> {
+    const { startDate, endDate } = filter;
+
+    const dateFilter: any = {};
+    if (startDate) dateFilter.gte = startDate;
+    if (endDate) dateFilter.lte = endDate;
+
+    const whereClause: any = {};
+    if (Object.keys(dateFilter).length > 0) whereClause.createdAt = dateFilter;
+
+    const [
+      totalRequests,
+      pendingRequests,
+      notifiedRequests,
+      requestsByProduct,
+      requestsTrend,
+    ] = await Promise.all([
+      this.fastify.prisma.notifyMe.count({ where: whereClause }),
+      this.fastify.prisma.notifyMe.count({ where: { ...whereClause, notified: false } }),
+      this.fastify.prisma.notifyMe.count({ where: { ...whereClause, notified: true } }),
+      this.fastify.prisma.notifyMe.groupBy({
+        by: ['productId'],
+        where: whereClause,
+        _count: true,
+        orderBy: { _count: { productId: 'desc' } },
+        take: 20,
+      }),
+      Object.keys(dateFilter).length > 0
+        ? this.fastify.prisma.$queryRaw`
+            SELECT
+              DATE("createdAt") as date,
+              COUNT(*) as count
+            FROM "NotifyMe"
+            WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+            GROUP BY DATE("createdAt")
+            ORDER BY date ASC
+          `
+        : this.fastify.prisma.$queryRaw`
+            SELECT
+              DATE("createdAt") as date,
+              COUNT(*) as count
+            FROM "NotifyMe"
+            GROUP BY DATE("createdAt")
+            ORDER BY date ASC
+          ` as Promise<{ date: Date; count: bigint }[]>,
+    ]);
+
+    const productIds = requestsByProduct.map((r) => r.productId);
+    const products = await this.fastify.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, nameEn: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p.nameEn]));
+
+    return {
+      totalRequests,
+      pendingRequests,
+      notifiedRequests,
+      requestsByProduct: requestsByProduct.map((item) => ({
+        productId: item.productId,
+        productName: productMap.get(item.productId) || 'Unknown',
+        count: item._count,
+      })),
+      requestsTrend: requestsTrend.map((item) => ({
+        date: item.date.toISOString().split('T')[0],
+        count: Number(item.count) || 0,
+      })),
+    };
+  }
+
+  // ============================================
+  // Vendor Dashboard Analytics
+  // ============================================
+
   // Get vendor dashboard statistics
-  async getVendorDashboard(userId: string): Promise<DashboardStats> {
+  async getVendorDashboard(userId: string): Promise<VendorDashboardStats> {
     try {
       const user = await this.fastify.prisma.user.findUnique({
         where: { id: userId },
@@ -111,7 +575,6 @@ export class AnalyticsService {
         throw this.fastify.httpErrors.badRequest('User not associated with any company');
       }
 
-      // Get date ranges
       const now = new Date();
       const today = new Date(now.setHours(0, 0, 0, 0));
       const thisWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -119,8 +582,7 @@ export class AnalyticsService {
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-      // Revenue calculations
-      const revenueData = await this.calculateRevenue(user.companyId, {
+      const revenueData = await this.calculateVendorRevenue(user.companyId, {
         today,
         thisWeekStart,
         thisMonthStart,
@@ -128,21 +590,15 @@ export class AnalyticsService {
         lastMonthEnd
       });
 
-      // Order statistics
-      const orderStats = await this.calculateOrderStats(user.companyId, {
+      const orderStats = await this.calculateVendorOrderStats(user.companyId, {
         today,
         thisWeekStart,
         thisMonthStart
       });
 
-      // Product statistics
-      const productStats = await this.calculateProductStats(user.companyId);
-
-      // Customer statistics
-      const customerStats = await this.calculateCustomerStats(user.companyId);
-
-      // Performance metrics
-      const performanceMetrics = await this.calculatePerformanceMetrics(user.companyId);
+      const productStats = await this.calculateVendorProductStats(user.companyId);
+      const customerStats = await this.calculateVendorCustomerStats(user.companyId);
+      const performanceMetrics = await this.calculateVendorPerformanceMetrics(user.companyId);
 
       return {
         revenue: revenueData,
@@ -156,96 +612,58 @@ export class AnalyticsService {
     }
   }
 
-  // Calculate revenue data
-  private async calculateRevenue(companyId: string, dates: any) {
+  private async calculateVendorRevenue(companyId: string, dates: any) {
     const { today, thisWeekStart, thisMonthStart, lastMonthStart, lastMonthEnd } = dates;
 
-    // Total revenue
     const totalRevenue = await this.fastify.prisma.orderItem.aggregate({
       where: {
         product: { companyId },
-        order: { status: 'COMPLETED' }
+        order: { status: 'DELIVERED' }
       },
-      _sum: {
-        price: true,
-        quantity: true
-      }
+      _sum: { total: true }
     });
 
-    const total = (totalRevenue._sum.price || 0) * (totalRevenue._sum.quantity || 1);
-
-    // Today's revenue
     const todayRevenue = await this.fastify.prisma.orderItem.aggregate({
       where: {
         product: { companyId },
-        order: {
-          status: 'COMPLETED',
-          createdAt: { gte: today }
-        }
+        order: { status: 'DELIVERED', createdAt: { gte: today } }
       },
-      _sum: {
-        price: true,
-        quantity: true
-      }
+      _sum: { total: true }
     });
 
-    const todayTotal = (todayRevenue._sum.price || 0) * (todayRevenue._sum.quantity || 1);
-
-    // This week's revenue
     const weekRevenue = await this.fastify.prisma.orderItem.aggregate({
       where: {
         product: { companyId },
-        order: {
-          status: 'COMPLETED',
-          createdAt: { gte: thisWeekStart }
-        }
+        order: { status: 'DELIVERED', createdAt: { gte: thisWeekStart } }
       },
-      _sum: {
-        price: true,
-        quantity: true
-      }
+      _sum: { total: true }
     });
 
-    const weekTotal = (weekRevenue._sum.price || 0) * (weekRevenue._sum.quantity || 1);
-
-    // This month's revenue
     const monthRevenue = await this.fastify.prisma.orderItem.aggregate({
       where: {
         product: { companyId },
-        order: {
-          status: 'COMPLETED',
-          createdAt: { gte: thisMonthStart }
-        }
+        order: { status: 'DELIVERED', createdAt: { gte: thisMonthStart } }
       },
-      _sum: {
-        price: true,
-        quantity: true
-      }
+      _sum: { total: true }
     });
 
-    const monthTotal = (monthRevenue._sum.price || 0) * (monthRevenue._sum.quantity || 1);
-
-    // Last month's revenue for growth calculation
     const lastMonthRevenue = await this.fastify.prisma.orderItem.aggregate({
       where: {
         product: { companyId },
         order: {
-          status: 'COMPLETED',
-          createdAt: {
-            gte: lastMonthStart,
-            lte: lastMonthEnd
-          }
+          status: 'DELIVERED',
+          createdAt: { gte: lastMonthStart, lte: lastMonthEnd }
         }
       },
-      _sum: {
-        price: true,
-        quantity: true
-      }
+      _sum: { total: true }
     });
 
-    const lastMonthTotal = (lastMonthRevenue._sum.price || 0) * (lastMonthRevenue._sum.quantity || 1);
+    const total = totalRevenue._sum.total || 0;
+    const todayTotal = todayRevenue._sum.total || 0;
+    const weekTotal = weekRevenue._sum.total || 0;
+    const monthTotal = monthRevenue._sum.total || 0;
+    const lastMonthTotal = lastMonthRevenue._sum.total || 0;
 
-    // Calculate growth percentage
     const growth = lastMonthTotal > 0
       ? ((monthTotal - lastMonthTotal) / lastMonthTotal) * 100
       : 0;
@@ -259,208 +677,115 @@ export class AnalyticsService {
     };
   }
 
-  // Calculate order statistics
-  private async calculateOrderStats(companyId: string, dates: any) {
+  private async calculateVendorOrderStats(companyId: string, dates: any) {
     const { today, thisWeekStart, thisMonthStart } = dates;
 
-    // Get orders with company products
     const orders = await this.fastify.prisma.order.findMany({
       where: {
-        items: {
-          some: {
-            product: { companyId }
-          }
-        }
+        items: { some: { product: { companyId } } }
       },
-      select: {
-        id: true,
-        status: true,
-        createdAt: true
-      }
+      select: { id: true, status: true, createdAt: true }
     });
 
-    // Count by status
-    const statusCounts = {
+    return {
       total: orders.length,
       pending: orders.filter(o => o.status === 'PENDING').length,
       processing: orders.filter(o => o.status === 'PROCESSING').length,
-      completed: orders.filter(o => o.status === 'COMPLETED').length,
+      completed: orders.filter(o => o.status === 'DELIVERED').length,
       cancelled: orders.filter(o => o.status === 'CANCELLED').length,
       today: orders.filter(o => o.createdAt >= today).length,
       thisWeek: orders.filter(o => o.createdAt >= thisWeekStart).length,
       thisMonth: orders.filter(o => o.createdAt >= thisMonthStart).length
     };
-
-    return statusCounts;
   }
 
-  // Calculate product statistics
-  private async calculateProductStats(companyId: string) {
-    // Get all products
+  private async calculateVendorProductStats(companyId: string) {
     const products = await this.fastify.prisma.product.findMany({
       where: { companyId },
-      select: {
-        id: true,
-        nameEn: true,
-        stock: true,
-        isActive: true,
-        _count: {
-          select: {
-            orderItems: true
-          }
-        }
-      }
+      select: { id: true, nameEn: true, stock: true, isActive: true }
     });
 
-    // Count product statuses
-    const stats = {
+    const bestSelling = await this.fastify.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: { product: { companyId } },
+      _sum: { quantity: true, total: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 5
+    });
+
+    return {
       total: products.length,
       active: products.filter(p => p.isActive).length,
       inactive: products.filter(p => !p.isActive).length,
       lowStock: products.filter(p => p.stock > 0 && p.stock < 10).length,
       outOfStock: products.filter(p => p.stock === 0).length,
-      bestSelling: [] as any[]
-    };
-
-    // Get best selling products
-    const bestSelling = await this.fastify.prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        product: { companyId }
-      },
-      _sum: {
-        quantity: true,
-        price: true
-      },
-      _count: true,
-      orderBy: {
-        _sum: {
-          quantity: 'desc'
-        }
-      },
-      take: 5
-    });
-
-    // Map best selling products with names
-    stats.bestSelling = await Promise.all(
-      bestSelling.map(async (item) => {
+      bestSelling: bestSelling.map((item) => {
         const product = products.find(p => p.id === item.productId);
         return {
           productId: item.productId,
           name: product?.nameEn || 'Unknown',
           sales: item._sum.quantity || 0,
-          revenue: (item._sum.price || 0) * (item._sum.quantity || 1)
+          revenue: item._sum.total || 0
         };
       })
-    );
-
-    return stats;
+    };
   }
 
-  // Calculate customer statistics
-  private async calculateCustomerStats(companyId: string) {
+  private async calculateVendorCustomerStats(companyId: string) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Get unique customers
-    const customers = await this.fastify.prisma.order.findMany({
-      where: {
-        items: {
-          some: {
-            product: { companyId }
-          }
-        }
-      },
-      select: {
-        userId: true,
-        createdAt: true,
-        totalAmount: true,
-        user: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      },
+    const orders = await this.fastify.prisma.order.findMany({
+      where: { items: { some: { product: { companyId } } } },
+      select: { userId: true, createdAt: true, total: true },
       distinct: ['userId']
     });
 
-    // Count new vs returning
-    const newCustomers = customers.filter(c => c.createdAt >= thirtyDaysAgo).length;
+    const newCustomers = orders.filter(c => c.createdAt >= thirtyDaysAgo).length;
 
-    // Get top customers
     const customerOrders = await this.fastify.prisma.order.groupBy({
       by: ['userId'],
-      where: {
-        items: {
-          some: {
-            product: { companyId }
-          }
-        }
-      },
+      where: { items: { some: { product: { companyId } } } },
       _count: true,
-      _sum: {
-        totalAmount: true
-      },
-      orderBy: {
-        _sum: {
-          totalAmount: 'desc'
-        }
-      },
+      _sum: { total: true },
+      orderBy: { _sum: { total: 'desc' } },
       take: 5
     });
 
-    // Map top customers with user details
     const topCustomers = await Promise.all(
       customerOrders.map(async (customer) => {
         const user = await this.fastify.prisma.user.findUnique({
           where: { id: customer.userId },
           select: { name: true }
         });
-
         return {
           userId: customer.userId,
           name: user?.name || 'Unknown',
           orderCount: customer._count,
-          totalSpent: customer._sum.totalAmount || 0
+          totalSpent: customer._sum.total || 0
         };
       })
     );
 
     return {
-      total: customers.length,
+      total: orders.length,
       new: newCustomers,
-      returning: customers.length - newCustomers,
+      returning: orders.length - newCustomers,
       topCustomers
     };
   }
 
-  // Calculate performance metrics
-  private async calculatePerformanceMetrics(companyId: string) {
-    // Average order value
+  private async calculateVendorPerformanceMetrics(companyId: string) {
     const orderValues = await this.fastify.prisma.order.aggregate({
-      where: {
-        items: {
-          some: {
-            product: { companyId }
-          }
-        }
-      },
-      _avg: {
-        totalAmount: true
-      },
+      where: { items: { some: { product: { companyId } } } },
+      _avg: { total: true },
       _count: true
     });
 
-    // Fulfillment rate (completed orders / total orders)
     const completedOrders = await this.fastify.prisma.order.count({
       where: {
-        items: {
-          some: {
-            product: { companyId }
-          }
-        },
-        status: 'COMPLETED'
+        items: { some: { product: { companyId } } },
+        status: 'DELIVERED'
       }
     });
 
@@ -468,82 +793,34 @@ export class AnalyticsService {
       ? (completedOrders / orderValues._count) * 100
       : 0;
 
-    // Average delivery time (for completed orders)
-    const completedOrdersWithTime = await this.fastify.prisma.order.findMany({
-      where: {
-        items: {
-          some: {
-            product: { companyId }
-          }
-        },
-        status: 'COMPLETED',
-        completedAt: { not: null }
-      },
-      select: {
-        createdAt: true,
-        completedAt: true
-      }
-    });
-
-    let averageDeliveryTime = 0;
-    if (completedOrdersWithTime.length > 0) {
-      const totalTime = completedOrdersWithTime.reduce((acc, order) => {
-        if (order.completedAt) {
-          const diff = order.completedAt.getTime() - order.createdAt.getTime();
-          return acc + diff;
-        }
-        return acc;
-      }, 0);
-
-      // Convert to hours
-      averageDeliveryTime = totalTime / completedOrdersWithTime.length / (1000 * 60 * 60);
-    }
-
     return {
-      averageOrderValue: orderValues._avg.totalAmount || 0,
-      conversionRate: 0, // Would need visitor tracking to calculate properly
+      averageOrderValue: orderValues._avg.total || 0,
+      conversionRate: 0,
       fulfillmentRate: Math.round(fulfillmentRate * 100) / 100,
-      averageDeliveryTime: Math.round(averageDeliveryTime * 10) / 10
+      averageDeliveryTime: 0
     };
   }
 
-  // Generate sales report
+  // Generate sales report for vendors
   async generateSalesReport(companyId: string, dateRange: DateRange): Promise<SalesReport> {
     try {
       const { startDate, endDate } = dateRange;
 
-      // Get all orders in date range
       const orders = await this.fastify.prisma.order.findMany({
         where: {
-          items: {
-            some: {
-              product: { companyId }
-            }
-          },
-          createdAt: {
-            gte: startDate,
-            lte: endDate
-          }
+          items: { some: { product: { companyId } } },
+          createdAt: { gte: startDate, lte: endDate }
         },
         include: {
           items: {
-            where: {
-              product: { companyId }
-            },
-            include: {
-              product: {
-                include: {
-                  category: true
-                }
-              }
-            }
+            where: { product: { companyId } },
+            include: { product: { include: { category: true } } }
           },
           user: true,
           address: true
         }
       });
 
-      // Calculate totals
       let totalSales = 0;
       const productSales = new Map();
       const categorySales = new Map();
@@ -556,10 +833,9 @@ export class AnalyticsService {
         uniqueCustomers.add(order.userId);
 
         order.items.forEach(item => {
-          const itemTotal = item.price * item.quantity;
+          const itemTotal = item.total;
           totalSales += itemTotal;
 
-          // Product sales
           if (productSales.has(item.productId)) {
             productSales.get(item.productId).sales += itemTotal;
             productSales.get(item.productId).quantity += item.quantity;
@@ -572,7 +848,6 @@ export class AnalyticsService {
             });
           }
 
-          // Category sales
           if (item.product.categoryId) {
             if (categorySales.has(item.product.categoryId)) {
               categorySales.get(item.product.categoryId).sales += itemTotal;
@@ -585,46 +860,22 @@ export class AnalyticsService {
             }
           }
 
-          // Daily sales
           if (dailySales.has(orderDate)) {
             dailySales.get(orderDate).sales += itemTotal;
             dailySales.get(orderDate).orders += 1;
           } else {
-            dailySales.set(orderDate, {
-              date: orderDate,
-              sales: itemTotal,
-              orders: 1
-            });
+            dailySales.set(orderDate, { date: orderDate, sales: itemTotal, orders: 1 });
           }
 
-          // Zone sales
           const zone = order.address?.zone || 'Unknown';
           if (zoneSales.has(zone)) {
             zoneSales.get(zone).sales += itemTotal;
             zoneSales.get(zone).orders += 1;
           } else {
-            zoneSales.set(zone, {
-              zone,
-              sales: itemTotal,
-              orders: 1
-            });
+            zoneSales.set(zone, { zone, sales: itemTotal, orders: 1 });
           }
         });
       });
-
-      // Sort and convert to arrays
-      const topProducts = Array.from(productSales.values())
-        .sort((a, b) => b.sales - a.sales)
-        .slice(0, 10);
-
-      const topCategories = Array.from(categorySales.values())
-        .sort((a, b) => b.sales - a.sales);
-
-      const salesByDate = Array.from(dailySales.values())
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      const salesByZone = Array.from(zoneSales.values())
-        .sort((a, b) => b.sales - a.sales);
 
       return {
         period: dateRange,
@@ -632,10 +883,10 @@ export class AnalyticsService {
         totalOrders: orders.length,
         totalCustomers: uniqueCustomers.size,
         averageOrderValue: orders.length > 0 ? totalSales / orders.length : 0,
-        topProducts,
-        topCategories,
-        salesByDate,
-        salesByZone
+        topProducts: Array.from(productSales.values()).sort((a, b) => b.sales - a.sales).slice(0, 10),
+        topCategories: Array.from(categorySales.values()).sort((a, b) => b.sales - a.sales),
+        salesByDate: Array.from(dailySales.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        salesByZone: Array.from(zoneSales.values()).sort((a, b) => b.sales - a.sales)
       };
     } catch (error) {
       throw this.fastify.httpErrors.internalServerError('Failed to generate sales report');
@@ -647,7 +898,6 @@ export class AnalyticsService {
     try {
       const { startDate, endDate } = dateRange;
 
-      // Get company commission rate
       const company = await this.fastify.prisma.company.findUnique({
         where: { id: companyId },
         select: { commissionRate: true }
@@ -655,39 +905,25 @@ export class AnalyticsService {
 
       const commissionRate = company?.commissionRate || 10;
 
-      // Get completed orders
       const orders = await this.fastify.prisma.order.findMany({
         where: {
-          items: {
-            some: {
-              product: { companyId }
-            }
-          },
-          status: 'COMPLETED',
-          completedAt: {
-            gte: startDate,
-            lte: endDate
-          }
+          items: { some: { product: { companyId } } },
+          status: 'DELIVERED',
+          deliveredAt: { gte: startDate, lte: endDate }
         },
         include: {
-          items: {
-            where: {
-              product: { companyId }
-            }
-          }
+          items: { where: { product: { companyId } } }
         }
       });
 
-      // Calculate commissions
       let totalRevenue = 0;
       let totalCommission = 0;
       const transactions = [];
 
       for (const order of orders) {
         let orderRevenue = 0;
-
         for (const item of order.items) {
-          orderRevenue += item.price * item.quantity;
+          orderRevenue += item.total;
         }
 
         const orderCommission = orderRevenue * (commissionRate / 100);
@@ -698,7 +934,7 @@ export class AnalyticsService {
 
         transactions.push({
           orderId: order.id,
-          date: order.completedAt!,
+          date: order.deliveredAt!,
           amount: orderRevenue,
           commission: orderCommission,
           payout: orderPayout,
@@ -726,7 +962,6 @@ export class AnalyticsService {
       const today = new Date(now.setHours(0, 0, 0, 0));
       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Platform-wide statistics
       const [
         totalUsers,
         totalVendors,
@@ -748,23 +983,8 @@ export class AnalyticsService {
         this.fastify.prisma.order.count(),
         this.fastify.prisma.order.count({ where: { createdAt: { gte: today } } }),
         this.fastify.prisma.order.count({ where: { createdAt: { gte: thisMonthStart } } }),
-        this.fastify.prisma.order.aggregate({ _sum: { totalAmount: true } })
+        this.fastify.prisma.order.aggregate({ _sum: { total: true } })
       ]);
-
-      // Top performing companies
-      const topCompanies = await this.fastify.prisma.order.groupBy({
-        by: ['items'],
-        _sum: {
-          totalAmount: true
-        },
-        _count: true,
-        orderBy: {
-          _sum: {
-            totalAmount: 'desc'
-          }
-        },
-        take: 5
-      });
 
       return {
         overview: {
@@ -777,9 +997,8 @@ export class AnalyticsService {
           totalOrders,
           todayOrders,
           monthOrders,
-          totalRevenue: totalRevenue._sum.totalAmount || 0
-        },
-        topCompanies
+          totalRevenue: totalRevenue._sum.total || 0
+        }
       };
     } catch (error) {
       throw this.fastify.httpErrors.internalServerError('Failed to generate admin dashboard');

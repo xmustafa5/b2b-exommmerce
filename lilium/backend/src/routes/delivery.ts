@@ -92,7 +92,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check if user has permission to update this order
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         // Verify order belongs to user's company
         const order = await fastify.prisma.order.findFirst({
           where: {
@@ -200,7 +200,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Validate permissions for each order if vendor/company manager
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         const validOrders = await fastify.prisma.order.findMany({
           where: {
             id: { in: orderIds },
@@ -352,7 +352,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = user.companyId;
 
       // Admins can view all orders
-      if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if ([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         const { companyId: queryCompanyId } = request.query;
         if (queryCompanyId) {
           companyId = queryCompanyId;
@@ -490,7 +490,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check permissions
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_MANAGER].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Only admins and company managers can assign drivers'
@@ -498,7 +498,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // If company manager, verify order belongs to their company
-      if (user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN) {
         const order = await fastify.prisma.order.findFirst({
           where: {
             id: orderId,
@@ -617,7 +617,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Verify user has permission to record cash for this order
-      if (user.role === UserRole.VENDOR || user.role === UserRole.COMPANY_MANAGER) {
+      if (user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) {
         const order = await fastify.prisma.order.findFirst({
           where: {
             id: orderId,
@@ -749,7 +749,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = queryCompanyId || user.companyId;
 
       // Non-admin users can only view their company's metrics
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         if (queryCompanyId && queryCompanyId !== user.companyId) {
           return reply.code(403).send({
             error: 'Forbidden',
@@ -1016,7 +1016,7 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
       let companyId = user.companyId;
 
       // Admins can view all or specific company
-      if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
+      if ([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN].includes(user.role)) {
         const { companyId: queryCompanyId } = request.query;
         if (queryCompanyId) {
           companyId = queryCompanyId;

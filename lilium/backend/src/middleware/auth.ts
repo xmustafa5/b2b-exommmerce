@@ -2,9 +2,10 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { UserRole, Zone } from '@prisma/client';
 import { JWTPayload } from '../types/auth';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: JWTPayload;
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: JWTPayload;
+    user: JWTPayload;
   }
 }
 
@@ -89,7 +90,7 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
     return reply.code(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
   }
 
-  const adminRoles = [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN];
+  const adminRoles: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN];
   if (!adminRoles.includes(request.user.role)) {
     return reply.code(403).send({
       error: 'Forbidden',
@@ -109,7 +110,8 @@ export function requireOwnerOrAdmin(getUserId: (request: FastifyRequest) => stri
 
     const resourceUserId = getUserId(request);
     const isOwner = request.user.userId === resourceUserId;
-    const isAdmin = [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN].includes(request.user.role);
+    const adminRoles: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN];
+    const isAdmin = adminRoles.includes(request.user.role);
 
     if (!isOwner && !isAdmin) {
       return reply.code(403).send({

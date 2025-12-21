@@ -195,6 +195,8 @@ async function buildServer() {
           { name: 'payouts', description: 'Payout management endpoints' },
           { name: 'upload', description: 'File upload endpoints' },
           { name: 'internal', description: 'Internal system endpoints' },
+          { name: 'addresses', description: 'Address management endpoints' },
+          { name: 'admins', description: 'Admin management endpoints' },
         ],
         components: {
           securitySchemes: {
@@ -231,12 +233,16 @@ async function buildServer() {
     await fastify.register(import('./routes/upload'), { prefix: '/api/upload' })
     await fastify.register(import('./routes/orders'), { prefix: '/api/orders' })
     await fastify.register(import('./routes/promotions'), { prefix: '/api/promotions' })
+    await fastify.register(import('./routes/addresses'), { prefix: '/api/addresses' })
+    await fastify.register(import('./routes/analytics'), { prefix: '/api/analytics' })
+
+    // Phase 4: Admin Management Routes
+    await fastify.register(import('./routes/admins'), { prefix: '/api/admins' })
 
     // Phase 5: Vendor/Company Management Routes
     await fastify.register(import('./routes/vendors'), { prefix: '/api/vendors' })
     await fastify.register(import('./routes/cart'), { prefix: '/api/cart' })
     await fastify.register(import('./routes/companies'), { prefix: '/api/companies' })
-    await fastify.register(import('./routes/analytics'), { prefix: '/api/analytics' })
     await fastify.register(import('./routes/payouts'), { prefix: '/api/payouts' })
 
     // Phase 6: Order Fulfillment & Delivery Routes

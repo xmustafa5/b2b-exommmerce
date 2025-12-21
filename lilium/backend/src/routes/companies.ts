@@ -171,7 +171,7 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Create a new company (Admin only)
   fastify.post('/', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['companies'],
       summary: 'Create a new company',
@@ -338,14 +338,14 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check authorization
-      if (user.role === UserRole.COMPANY_MANAGER && user.companyId !== id) {
+      if (user.role === UserRole.COMPANY_ADMIN && user.companyId !== id) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'You can only update your own company'
         });
       }
 
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_MANAGER].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Insufficient permissions'
@@ -541,14 +541,14 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check authorization
-      if (user.role === UserRole.COMPANY_MANAGER && user.companyId !== id) {
+      if (user.role === UserRole.COMPANY_ADMIN && user.companyId !== id) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'You can only view stats for your own company'
         });
       }
 
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_MANAGER, UserRole.VENDOR].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Insufficient permissions'
@@ -568,7 +568,7 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Toggle company status (Admin only)
   fastify.patch('/:id/status', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['companies'],
       summary: 'Toggle company active status',
@@ -696,14 +696,14 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check authorization
-      if (user.role === UserRole.COMPANY_MANAGER && user.companyId !== id) {
+      if (user.role === UserRole.COMPANY_ADMIN && user.companyId !== id) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'You can only update delivery fees for your own company'
         });
       }
 
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_MANAGER].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Insufficient permissions'
@@ -724,7 +724,7 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Update commission rate (Admin only)
   fastify.patch('/:id/commission', {
-    preHandler: [authenticate, authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])],
+    preHandler: [authenticate, authorize([UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN])],
     schema: {
       tags: ['companies'],
       summary: 'Update company commission rate',
@@ -842,14 +842,14 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check authorization
-      if ((user.role === UserRole.COMPANY_MANAGER || user.role === UserRole.VENDOR) && user.companyId !== id) {
+      if ((user.role === UserRole.COMPANY_ADMIN || user.role === UserRole.COMPANY_ADMIN) && user.companyId !== id) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'You can only view vendors for your own company'
         });
       }
 
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_MANAGER, UserRole.VENDOR].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Insufficient permissions'
@@ -1065,14 +1065,14 @@ const companyRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Check authorization
-      if (user.role === UserRole.COMPANY_MANAGER && user.companyId !== id) {
+      if (user.role === UserRole.COMPANY_ADMIN && user.companyId !== id) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'You can only view payouts for your own company'
         });
       }
 
-      if (![UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_MANAGER].includes(user.role)) {
+      if (![UserRole.LOCATION_ADMIN, UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role)) {
         return reply.code(403).send({
           error: 'Forbidden',
           message: 'Insufficient permissions'

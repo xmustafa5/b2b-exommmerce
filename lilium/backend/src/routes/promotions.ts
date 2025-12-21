@@ -2,6 +2,12 @@ import { FastifyPluginAsync } from 'fastify';
 import { PromotionService } from '../services/promotion.service';
 import { authenticate, requireRole } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
+import { handleError } from '../utils/errors';
+import {
+  createPromotionSchema,
+  updatePromotionSchema,
+  applyPromotionSchema,
+} from '../types/validation';
 
 // Shared schema definitions for reuse
 const promotionProductSchema = {
@@ -112,9 +118,8 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
       const { includeInactive = false } = request.query;
       const promotions = await promotionService.getPromotions(includeInactive === 'true');
       return reply.send(promotions);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -152,9 +157,8 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
       const { zone } = request.params;
       const promotions = await promotionService.getActivePromotionsByZone(zone);
       return reply.send(promotions);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -194,9 +198,8 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = request.params;
       const promotion = await promotionService.getPromotionById(id);
       return reply.send(promotion);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(404).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -329,11 +332,11 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const promotion = await promotionService.createPromotion(request.body);
+      const data = createPromotionSchema.parse(request.body);
+      const promotion = await promotionService.createPromotion(data);
       return reply.code(201).send(promotion);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(400).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -478,11 +481,11 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
-      const promotion = await promotionService.updatePromotion(id, request.body);
+      const data = updatePromotionSchema.parse(request.body);
+      const promotion = await promotionService.updatePromotion(id, data);
       return reply.send(promotion);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(400).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -553,9 +556,8 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = request.params;
       const promotion = await promotionService.togglePromotionStatus(id);
       return reply.send(promotion);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(400).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -608,9 +610,8 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = request.params;
       const result = await promotionService.deletePromotion(id);
       return reply.send(result);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(400).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 
@@ -714,12 +715,11 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request: any, reply) => {
     try {
-      const { cartItems } = request.body;
-      const result = await promotionService.applyPromotionsToCart(cartItems);
+      const data = applyPromotionSchema.parse(request.body);
+      const result = await promotionService.applyPromotionsToCart(data.cartItems);
       return reply.send(result);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(400).send({ error: error.message });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
     }
   });
 };
