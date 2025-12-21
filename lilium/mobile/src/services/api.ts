@@ -117,4 +117,26 @@ export const ordersApi = {
   },
 };
 
+// Notifications API
+export const notificationsApi = {
+  registerToken: async (fcmToken: string): Promise<void> => {
+    await api.post('/notifications/register-token', { fcmToken });
+  },
+
+  unregisterToken: async (): Promise<void> => {
+    await api.delete('/notifications/unregister-token');
+  },
+
+  getStatus: async (): Promise<{ firebaseInitialized: boolean; tokenRegistered: boolean }> => {
+    const response = await api.get('/notifications/status');
+    return response.data;
+  },
+
+  testNotification: async (): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/notifications/test');
+    return response.data;
+  },
+};
+
+export { api };
 export default api;

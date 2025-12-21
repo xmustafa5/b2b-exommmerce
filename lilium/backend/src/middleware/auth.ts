@@ -10,6 +10,75 @@ declare module '@fastify/jwt' {
 }
 
 /**
+ * Helper type for zone filter result
+ */
+export interface ZoneFilterResult {
+  zones: Zone[] | undefined;
+  shouldFilter: boolean;
+}
+
+/**
+ * Get zone filter based on user role
+ * - SUPER_ADMIN: No filter (access to all zones)
+ * - LOCATION_ADMIN: Filter by assigned zones
+ * - SHOP_OWNER: Filter by assigned zones
+ *
+ * @param user - JWT payload with user info
+ * @param requestedZone - Optional zone from request query
+ * @returns ZoneFilterResult with zones to filter by
+ */
+export function getZoneFilter(user: JWTPayload, requestedZone?: Zone): ZoneFilterResult {
+  // Super admin has access to all zones - no filter needed
+  if (user.role === UserRole.SUPER_ADMIN) {
+    // If a zone is requested, filter by it; otherwise, no filter
+    return {
+      zones: requestedZone ? [requestedZone] : undefined,
+      shouldFilter: !!requestedZone,
+    };
+  }
+
+  // For LOCATION_ADMIN and SHOP_OWNER, filter by their zones
+  const userZones = user.zones || [];
+
+  // If a specific zone is requested, validate access
+  if (requestedZone) {
+    if (!userZones.includes(requestedZone)) {
+      // User doesn't have access to requested zone - return empty to filter out all
+      return { zones: [], shouldFilter: true };
+    }
+    return { zones: [requestedZone], shouldFilter: true };
+  }
+
+  // No specific zone requested - filter by all user's zones
+  return { zones: userZones, shouldFilter: true };
+}
+
+/**
+ * Validate if user has access to a specific zone
+ * @param user - JWT payload with user info
+ * @param zone - Zone to check access for
+ * @returns true if user has access, false otherwise
+ */
+export function hasZoneAccess(user: JWTPayload, zone: Zone): boolean {
+  if (user.role === UserRole.SUPER_ADMIN) {
+    return true;
+  }
+  return user.zones?.includes(zone) ?? false;
+}
+
+/**
+ * Get the zones a user can access
+ * @param user - JWT payload with user info
+ * @returns Array of zones the user can access, or undefined for all zones
+ */
+export function getUserAccessibleZones(user: JWTPayload): Zone[] | undefined {
+  if (user.role === UserRole.SUPER_ADMIN) {
+    return undefined; // All zones
+  }
+  return user.zones || [];
+}
+
+/**
  * Authenticate request - verifies JWT token
  */
 export async function authenticate(request: FastifyRequest, reply: FastifyReply) {

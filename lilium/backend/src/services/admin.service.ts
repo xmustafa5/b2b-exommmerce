@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { UserRole, Zone, Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { User, UserRole, Zone, Prisma } from '@prisma/client';
 
-interface AdminCreateInput {
+// Types for admin management
+export interface CreateAdminInput {
   email: string;
   password: string;
   name: string;
@@ -11,14 +12,14 @@ interface AdminCreateInput {
   zones: Zone[];
 }
 
-interface AdminUpdateInput {
+export interface UpdateAdminInput {
   name?: string;
   phone?: string;
-  isActive?: boolean;
   zones?: Zone[];
+  isActive?: boolean;
 }
 
-interface AdminListFilters {
+export interface AdminFilters {
   role?: UserRole;
   zone?: Zone;
   isActive?: boolean;
@@ -27,14 +28,29 @@ interface AdminListFilters {
   limit?: number;
 }
 
+export interface AdminListResult {
+  admins: Partial<User>[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export class AdminService {
   constructor(private fastify: FastifyInstance) {}
 
   /**
-   * Get all admins (SUPER_ADMIN and LOCATION_ADMIN users)
+   * Get all admin users (SUPER_ADMIN and LOCATION_ADMIN)
    */
-  async getAdmins(filters: AdminListFilters = {}) {
+  async getAdmins(filters: AdminFilters = {}): Promise<AdminListResult> {
     const { role, zone, isActive, search, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
       role: role ? role : { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
@@ -52,6 +68,7 @@ export class AdminService {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -69,15 +86,19 @@ export class AdminService {
           createdAt: true,
           updatedAt: true,
         },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
+        orderBy: { createdAt: 'desc' },
       }),
       this.fastify.prisma.user.count({ where }),
     ]);
 
     return {
       admins,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
       pagination: {
         page,
         limit,
@@ -90,7 +111,7 @@ export class AdminService {
   /**
    * Get a single admin by ID
    */
-  async getAdminById(id: string) {
+  async getAdminById(id: string): Promise<Partial<User> | null> {
     const admin = await this.fastify.prisma.user.findFirst({
       where: {
         id,
@@ -117,49 +138,56 @@ export class AdminService {
   }
 
   /**
-   * Create a new admin (LOCATION_ADMIN only - SUPER_ADMIN creation should be restricted)
+   * Create a new admin user
    */
-  async createAdmin(data: AdminCreateInput, createdByRole: UserRole) {
-    // Only SUPER_ADMIN can create other admins
-    if (createdByRole !== UserRole.SUPER_ADMIN) {
+  async createAdmin(data: CreateAdminInput, createdByRole?: UserRole): Promise<Partial<User>> {
+    const { password, zones, ...userData } = data;
+
+    // Only SUPER_ADMIN can create other admins (if role check is provided)
+    if (createdByRole && createdByRole !== UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('Only SUPER_ADMIN can create new admins');
     }
 
     // Prevent creating SUPER_ADMIN through API for security
-    if (data.role === UserRole.SUPER_ADMIN) {
+    if (userData.role === UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('SUPER_ADMIN accounts cannot be created through API');
     }
 
-    // Check if email already exists
+    // Check if user already exists
     const existingUser = await this.fastify.prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: userData.email },
     });
 
     if (existingUser) {
-      throw this.fastify.httpErrors.conflict('Email already exists');
+      throw this.fastify.httpErrors.conflict('User with this email already exists');
     }
 
-    // Check if phone already exists
-    if (data.phone) {
+    // Check phone uniqueness if provided
+    if (userData.phone) {
       const existingPhone = await this.fastify.prisma.user.findUnique({
-        where: { phone: data.phone },
+        where: { phone: userData.phone },
       });
       if (existingPhone) {
-        throw this.fastify.httpErrors.conflict('Phone number already exists');
+        throw this.fastify.httpErrors.conflict('User with this phone number already exists');
       }
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(data.password, 12);
+    // Validate zones for LOCATION_ADMIN
+    if (userData.role === UserRole.LOCATION_ADMIN && zones.length === 0) {
+      throw this.fastify.httpErrors.badRequest('Location admin must have at least one zone assigned');
+    }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create admin user
     const admin = await this.fastify.prisma.user.create({
       data: {
-        email: data.email,
+        ...userData,
         password: hashedPassword,
-        name: data.name,
-        phone: data.phone,
-        role: data.role,
-        zones: data.zones,
+        zones: zones as Zone[],
+        role: userData.role as UserRole,
+        emailVerified: true, // Admins are pre-verified
         isActive: true,
       },
       select: {
@@ -171,6 +199,7 @@ export class AdminService {
         zones: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -178,32 +207,42 @@ export class AdminService {
   }
 
   /**
-   * Update an admin
+   * Update an admin user
    */
-  async updateAdmin(id: string, data: AdminUpdateInput, updatedByRole: UserRole) {
-    const admin = await this.fastify.prisma.user.findFirst({
+  async updateAdmin(id: string, data: UpdateAdminInput, updatedByRole?: UserRole): Promise<Partial<User>> {
+    // Verify admin exists
+    const existingAdmin = await this.fastify.prisma.user.findFirst({
       where: {
         id,
         role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
       },
     });
 
-    if (!admin) {
+    if (!existingAdmin) {
       throw this.fastify.httpErrors.notFound('Admin not found');
     }
 
     // Prevent LOCATION_ADMIN from modifying SUPER_ADMIN
-    if (admin.role === UserRole.SUPER_ADMIN && updatedByRole !== UserRole.SUPER_ADMIN) {
+    if (existingAdmin.role === UserRole.SUPER_ADMIN && updatedByRole && updatedByRole !== UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('Cannot modify SUPER_ADMIN account');
     }
 
-    const updated = await this.fastify.prisma.user.update({
+    // Validate zones for LOCATION_ADMIN
+    if (
+      existingAdmin.role === UserRole.LOCATION_ADMIN &&
+      data.zones !== undefined &&
+      data.zones.length === 0
+    ) {
+      throw this.fastify.httpErrors.badRequest('Location admin must have at least one zone assigned');
+    }
+
+    const admin = await this.fastify.prisma.user.update({
       where: { id },
       data: {
-        name: data.name,
-        phone: data.phone,
-        isActive: data.isActive,
-        zones: data.zones,
+        ...(data.name && { name: data.name }),
+        ...(data.phone !== undefined && { phone: data.phone || null }),
+        ...(data.zones && { zones: data.zones }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
       select: {
         id: true,
@@ -213,57 +252,115 @@ export class AdminService {
         role: true,
         zones: true,
         isActive: true,
+        createdAt: true,
         updatedAt: true,
       },
     });
 
-    return updated;
+    return admin;
   }
 
   /**
    * Update admin zones
    */
-  async updateAdminZones(id: string, zones: Zone[], updatedByRole: UserRole) {
-    const admin = await this.fastify.prisma.user.findFirst({
+  async updateAdminZones(id: string, zones: Zone[], updatedByRole?: UserRole): Promise<Partial<User>> {
+    // Verify admin exists
+    const existingAdmin = await this.fastify.prisma.user.findFirst({
       where: {
         id,
         role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
       },
     });
 
-    if (!admin) {
+    if (!existingAdmin) {
       throw this.fastify.httpErrors.notFound('Admin not found');
     }
 
     // Prevent modifying SUPER_ADMIN zones (they have access to all)
-    if (admin.role === UserRole.SUPER_ADMIN) {
+    if (existingAdmin.role === UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.badRequest('SUPER_ADMIN has access to all zones');
     }
 
-    if (updatedByRole !== UserRole.SUPER_ADMIN) {
+    if (updatedByRole && updatedByRole !== UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('Only SUPER_ADMIN can modify zones');
     }
 
-    const updated = await this.fastify.prisma.user.update({
+    if (zones.length === 0) {
+      throw this.fastify.httpErrors.badRequest('Location admin must have at least one zone assigned');
+    }
+
+    const admin = await this.fastify.prisma.user.update({
       where: { id },
       data: { zones },
       select: {
         id: true,
         email: true,
         name: true,
+        phone: true,
         role: true,
         zones: true,
+        isActive: true,
+        createdAt: true,
         updatedAt: true,
       },
     });
 
-    return updated;
+    return admin;
+  }
+
+  /**
+   * Activate or deactivate an admin
+   */
+  async setAdminActive(id: string, isActive: boolean): Promise<Partial<User>> {
+    // Verify admin exists
+    const existingAdmin = await this.fastify.prisma.user.findFirst({
+      where: {
+        id,
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
+      },
+    });
+
+    if (!existingAdmin) {
+      throw this.fastify.httpErrors.notFound('Admin not found');
+    }
+
+    // Prevent deactivating the last super admin
+    if (!isActive && existingAdmin.role === UserRole.SUPER_ADMIN) {
+      const superAdminCount = await this.fastify.prisma.user.count({
+        where: {
+          role: UserRole.SUPER_ADMIN,
+          isActive: true,
+        },
+      });
+
+      if (superAdminCount <= 1) {
+        throw this.fastify.httpErrors.badRequest('Cannot deactivate the last active super admin');
+      }
+    }
+
+    const admin = await this.fastify.prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        role: true,
+        zones: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return admin;
   }
 
   /**
    * Deactivate an admin
    */
-  async deactivateAdmin(id: string, deactivatedByRole: UserRole) {
+  async deactivateAdmin(id: string, deactivatedByRole?: UserRole): Promise<Partial<User>> {
     const admin = await this.fastify.prisma.user.findFirst({
       where: {
         id,
@@ -280,13 +377,13 @@ export class AdminService {
       throw this.fastify.httpErrors.forbidden('Cannot deactivate SUPER_ADMIN account');
     }
 
-    if (deactivatedByRole !== UserRole.SUPER_ADMIN) {
+    if (deactivatedByRole && deactivatedByRole !== UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('Only SUPER_ADMIN can deactivate admins');
     }
 
     const updated = await this.fastify.prisma.user.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, refreshToken: null },
       select: {
         id: true,
         email: true,
@@ -302,7 +399,7 @@ export class AdminService {
   /**
    * Activate an admin
    */
-  async activateAdmin(id: string, activatedByRole: UserRole) {
+  async activateAdmin(id: string, activatedByRole?: UserRole): Promise<Partial<User>> {
     const admin = await this.fastify.prisma.user.findFirst({
       where: {
         id,
@@ -314,7 +411,7 @@ export class AdminService {
       throw this.fastify.httpErrors.notFound('Admin not found');
     }
 
-    if (activatedByRole !== UserRole.SUPER_ADMIN) {
+    if (activatedByRole && activatedByRole !== UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('Only SUPER_ADMIN can activate admins');
     }
 
@@ -336,67 +433,127 @@ export class AdminService {
   /**
    * Reset admin password
    */
-  async resetAdminPassword(id: string, newPassword: string, resetByRole: UserRole) {
-    const admin = await this.fastify.prisma.user.findFirst({
+  async resetAdminPassword(id: string, newPassword: string, resetByRole?: UserRole): Promise<{ message: string }> {
+    // Verify admin exists
+    const existingAdmin = await this.fastify.prisma.user.findFirst({
       where: {
         id,
         role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
       },
     });
 
-    if (!admin) {
+    if (!existingAdmin) {
       throw this.fastify.httpErrors.notFound('Admin not found');
     }
 
     // Only SUPER_ADMIN can reset passwords
-    if (resetByRole !== UserRole.SUPER_ADMIN) {
+    if (resetByRole && resetByRole !== UserRole.SUPER_ADMIN) {
       throw this.fastify.httpErrors.forbidden('Only SUPER_ADMIN can reset admin passwords');
     }
 
+    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await this.fastify.prisma.user.update({
       where: { id },
-      data: { password: hashedPassword },
+      data: {
+        password: hashedPassword,
+        refreshToken: null, // Invalidate existing sessions
+      },
     });
 
     return { message: 'Password reset successfully' };
   }
 
   /**
-   * Get admin statistics
+   * Delete an admin (soft delete by deactivating)
    */
-  async getAdminStats() {
-    const [totalAdmins, superAdmins, locationAdmins, activeAdmins, inactiveAdmins] = await Promise.all([
-      this.fastify.prisma.user.count({
-        where: { role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] } },
-      }),
-      this.fastify.prisma.user.count({
-        where: { role: UserRole.SUPER_ADMIN },
-      }),
-      this.fastify.prisma.user.count({
-        where: { role: UserRole.LOCATION_ADMIN },
-      }),
-      this.fastify.prisma.user.count({
+  async deleteAdmin(id: string): Promise<void> {
+    // Verify admin exists
+    const existingAdmin = await this.fastify.prisma.user.findFirst({
+      where: {
+        id,
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
+      },
+    });
+
+    if (!existingAdmin) {
+      throw this.fastify.httpErrors.notFound('Admin not found');
+    }
+
+    // Prevent deleting the last super admin
+    if (existingAdmin.role === UserRole.SUPER_ADMIN) {
+      const superAdminCount = await this.fastify.prisma.user.count({
         where: {
-          role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
+          role: UserRole.SUPER_ADMIN,
           isActive: true,
         },
-      }),
-      this.fastify.prisma.user.count({
-        where: {
-          role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
-          isActive: false,
-        },
-      }),
-    ]);
+      });
 
-    // Get admins by zone
-    const adminsByZone = await this.fastify.prisma.user.groupBy({
-      by: ['zones'],
-      where: { role: UserRole.LOCATION_ADMIN },
-      _count: true,
+      if (superAdminCount <= 1) {
+        throw this.fastify.httpErrors.badRequest('Cannot delete the last super admin');
+      }
+    }
+
+    // Soft delete - deactivate the admin
+    await this.fastify.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: false,
+        refreshToken: null,
+      },
     });
+  }
+
+  /**
+   * Get admin statistics
+   */
+  async getAdminStats(): Promise<{
+    totalAdmins: number;
+    superAdmins: number;
+    locationAdmins: number;
+    activeAdmins: number;
+    inactiveAdmins: number;
+    adminsByZone: { zone: Zone; count: number }[];
+  }> {
+    const [totalAdmins, superAdmins, locationAdmins, activeAdmins, inactiveAdmins] =
+      await Promise.all([
+        this.fastify.prisma.user.count({
+          where: { role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] } },
+        }),
+        this.fastify.prisma.user.count({
+          where: { role: UserRole.SUPER_ADMIN },
+        }),
+        this.fastify.prisma.user.count({
+          where: { role: UserRole.LOCATION_ADMIN },
+        }),
+        this.fastify.prisma.user.count({
+          where: {
+            role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
+            isActive: true,
+          },
+        }),
+        this.fastify.prisma.user.count({
+          where: {
+            role: { in: [UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN] },
+            isActive: false,
+          },
+        }),
+      ]);
+
+    // Count admins by zone
+    const adminsByZone = await Promise.all(
+      Object.values(Zone).map(async (zone) => {
+        const count = await this.fastify.prisma.user.count({
+          where: {
+            role: UserRole.LOCATION_ADMIN,
+            zones: { has: zone },
+            isActive: true,
+          },
+        });
+        return { zone, count };
+      })
+    );
 
     return {
       totalAdmins,
@@ -404,34 +561,48 @@ export class AdminService {
       locationAdmins,
       activeAdmins,
       inactiveAdmins,
-      adminsByZone: adminsByZone.map(item => ({
-        zones: item.zones,
-        count: item._count,
-      })),
+      adminsByZone,
     };
   }
 
   /**
-   * Get shop owners list (for admin management)
+   * Get all shop owners (for admin management)
    */
-  async getShopOwners(filters: { zone?: Zone; search?: string; page?: number; limit?: number } = {}) {
-    const { zone, search, page = 1, limit = 20 } = filters;
+  async getShopOwners(filters: {
+    zone?: Zone;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    shopOwners: Partial<User>[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    const { zone, isActive, search, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
       role: UserRole.SHOP_OWNER,
+      ...(isActive !== undefined && { isActive }),
+      ...(zone && { zones: { has: zone } }),
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { businessName: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
     };
-
-    if (zone) {
-      where.zones = { has: zone };
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { businessName: { contains: search, mode: 'insensitive' } },
-      ];
-    }
 
     const [shopOwners, total] = await Promise.all([
       this.fastify.prisma.user.findMany({
@@ -442,22 +613,28 @@ export class AdminService {
           name: true,
           businessName: true,
           phone: true,
+          role: true,
           zones: true,
           isActive: true,
           createdAt: true,
+          updatedAt: true,
           _count: {
             select: { orders: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
+        orderBy: { createdAt: 'desc' },
       }),
       this.fastify.prisma.user.count({ where }),
     ]);
 
     return {
       shopOwners,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
       pagination: {
         page,
         limit,
@@ -465,5 +642,43 @@ export class AdminService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Activate or deactivate a shop owner
+   */
+  async setShopOwnerActive(id: string, isActive: boolean): Promise<Partial<User>> {
+    const existingUser = await this.fastify.prisma.user.findFirst({
+      where: {
+        id,
+        role: UserRole.SHOP_OWNER,
+      },
+    });
+
+    if (!existingUser) {
+      throw this.fastify.httpErrors.notFound('Shop owner not found');
+    }
+
+    const user = await this.fastify.prisma.user.update({
+      where: { id },
+      data: {
+        isActive,
+        ...(isActive === false && { refreshToken: null }), // Invalidate sessions on deactivation
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        businessName: true,
+        phone: true,
+        role: true,
+        zones: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return user;
   }
 }

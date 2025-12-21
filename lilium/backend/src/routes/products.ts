@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ProductService } from '../services/product.service';
-import { authenticate, requireRole } from '../middleware/auth';
-import { UserRole } from '@prisma/client';
+import { authenticate, requireRole, hasZoneAccess } from '../middleware/auth';
+import { UserRole, Zone } from '@prisma/client';
 import { handleError } from '../utils/errors';
 import {
   productQuerySchema,
@@ -13,6 +13,49 @@ import {
 
 const productRoutes: FastifyPluginAsync = async (fastify) => {
   const productService = new ProductService(fastify);
+
+  /**
+   * Helper to check if admin has access to product's zones
+   * LOCATION_ADMIN can only modify products that are available in their zones
+   */
+  async function validateAdminProductAccess(productId: string, user: any): Promise<boolean> {
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    if (user.role === UserRole.LOCATION_ADMIN) {
+      const product = await fastify.prisma.product.findUnique({
+        where: { id: productId },
+        select: { zones: true },
+      });
+
+      if (!product) {
+        return false;
+      }
+
+      // Check if admin has access to at least one of the product's zones
+      return product.zones.some((zone: Zone) => hasZoneAccess(user, zone));
+    }
+
+    return false;
+  }
+
+  /**
+   * Helper to validate zones in product data for LOCATION_ADMIN
+   * LOCATION_ADMIN can only set zones they have access to
+   */
+  function validateProductZones(zones: Zone[] | undefined, user: any): boolean {
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    if (!zones || zones.length === 0) {
+      return true; // No zones specified
+    }
+
+    // LOCATION_ADMIN can only set zones they have access to
+    return zones.every((zone: Zone) => hasZoneAccess(user, zone));
+  }
 
   // Get all products (Public - filtered by user's zone)
   fastify.get('/', {
@@ -420,6 +463,22 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: any, reply) => {
     try {
       const data = createProductSchema.parse(request.body);
+      const user = request.user;
+
+      // LOCATION_ADMIN can only create products for their zones
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        if (!validateProductZones(data.zones as Zone[], user)) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You can only create products for zones you have access to',
+          });
+        }
+        // If no zones specified, default to admin's zones
+        if (!data.zones || data.zones.length === 0) {
+          data.zones = user.zones;
+        }
+      }
+
       const product = await productService.createProduct(data);
       return reply.code(201).send(product);
     } catch (error) {
@@ -542,6 +601,27 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
       const data = updateProductSchema.parse(request.body);
+      const user = request.user;
+
+      // LOCATION_ADMIN can only update products in their zones
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        const hasAccess = await validateAdminProductAccess(id, user);
+        if (!hasAccess) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to products in this zone',
+          });
+        }
+
+        // Validate new zones if being updated
+        if (data.zones && !validateProductZones(data.zones as Zone[], user)) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You can only set zones you have access to',
+          });
+        }
+      }
+
       const product = await productService.updateProduct(id, data);
       return reply.send(product);
     } catch (error) {
@@ -627,6 +707,18 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
       const { quantity, operation } = updateStockSchema.parse(request.body);
+      const user = request.user;
+
+      // LOCATION_ADMIN can only update stock for products in their zones
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        const hasAccess = await validateAdminProductAccess(id, user);
+        if (!hasAccess) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to products in this zone',
+          });
+        }
+      }
 
       const product = await productService.updateStock(id, quantity, operation);
       return reply.send(product);
@@ -792,6 +884,28 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: any, reply) => {
     try {
       const { ids, data } = bulkProductSchema.parse(request.body);
+      const user = request.user;
+
+      // LOCATION_ADMIN: validate access to all products
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        for (const id of ids) {
+          const hasAccess = await validateAdminProductAccess(id, user);
+          if (!hasAccess) {
+            return reply.code(403).send({
+              error: 'Forbidden',
+              message: `You do not have access to product ${id}`,
+            });
+          }
+        }
+
+        // Validate zones if being updated
+        if (data?.zones && !validateProductZones(data.zones as Zone[], user)) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You can only set zones you have access to',
+          });
+        }
+      }
 
       const updates = ids.map((id: string) =>
         productService.updateProduct(id, data || {})

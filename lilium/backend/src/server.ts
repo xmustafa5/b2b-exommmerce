@@ -185,18 +185,8 @@ async function buildServer() {
           { name: 'products', description: 'Product management endpoints' },
           { name: 'categories', description: 'Category management endpoints' },
           { name: 'orders', description: 'Order management endpoints' },
-          { name: 'promotions', description: 'Promotion management endpoints' },
-          { name: 'companies', description: 'Company management endpoints' },
-          { name: 'vendors', description: 'Vendor operations endpoints' },
-          { name: 'cart', description: 'Shopping cart endpoints' },
-          { name: 'delivery', description: 'Delivery and fulfillment endpoints' },
-          { name: 'settlements', description: 'Settlement management endpoints' },
-          { name: 'analytics', description: 'Analytics and reporting endpoints' },
-          { name: 'payouts', description: 'Payout management endpoints' },
-          { name: 'upload', description: 'File upload endpoints' },
-          { name: 'internal', description: 'Internal system endpoints' },
-          { name: 'addresses', description: 'Address management endpoints' },
-          { name: 'admins', description: 'Admin management endpoints' },
+          { name: 'Addresses', description: 'Address management endpoints' },
+          { name: 'Analytics', description: 'Analytics and reporting endpoints' },
         ],
         components: {
           securitySchemes: {
@@ -235,22 +225,6 @@ async function buildServer() {
     await fastify.register(import('./routes/promotions'), { prefix: '/api/promotions' })
     await fastify.register(import('./routes/addresses'), { prefix: '/api/addresses' })
     await fastify.register(import('./routes/analytics'), { prefix: '/api/analytics' })
-
-    // Phase 4: Admin Management Routes
-    await fastify.register(import('./routes/admins'), { prefix: '/api/admins' })
-
-    // Phase 5: Vendor/Company Management Routes
-    await fastify.register(import('./routes/vendors'), { prefix: '/api/vendors' })
-    await fastify.register(import('./routes/cart'), { prefix: '/api/cart' })
-    await fastify.register(import('./routes/companies'), { prefix: '/api/companies' })
-    await fastify.register(import('./routes/payouts'), { prefix: '/api/payouts' })
-
-    // Phase 6: Order Fulfillment & Delivery Routes
-    await fastify.register(import('./routes/delivery'), { prefix: '/api/delivery' })
-    await fastify.register(import('./routes/settlements'), { prefix: '/api/settlements' })
-
-    // Internal API for Lilium team to manage users
-    await fastify.register(import('./routes/internal'), { prefix: '/api/internal' })
 
     // Graceful shutdown
     const closeGracefully = async (signal: string) => {

@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { OrderService } from '../services/order.service';
-import { authenticate, requireRole } from '../middleware/auth';
-import { UserRole } from '@prisma/client';
+import { authenticate, requireRole, hasZoneAccess } from '../middleware/auth';
+import { UserRole, Zone } from '@prisma/client';
 import { handleError } from '../utils/errors';
 import {
   orderQuerySchema,
@@ -11,6 +11,30 @@ import {
 
 const orderRoutes: FastifyPluginAsync = async (fastify) => {
   const orderService = new OrderService(fastify);
+
+  /**
+   * Helper to check if admin has access to order's zone
+   */
+  async function validateAdminZoneAccess(orderId: string, user: any): Promise<boolean> {
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    if (user.role === UserRole.LOCATION_ADMIN) {
+      const order = await fastify.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { address: { select: { zone: true } } },
+      });
+
+      if (!order || !order.address) {
+        return false;
+      }
+
+      return hasZoneAccess(user, order.address.zone);
+    }
+
+    return false;
+  }
 
   // Get all orders (with filters)
   fastify.get('/', {
@@ -101,13 +125,25 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
 
       const filters: any = {};
       if (query.status) filters.status = query.status;
-      if (query.zone) filters.zone = query.zone;
       if (query.startDate) filters.startDate = new Date(query.startDate);
       if (query.endDate) filters.endDate = new Date(query.endDate);
 
       // Shop owners only see their own orders
       if (user.role === UserRole.SHOP_OWNER) {
         filters.userId = user.userId;
+      }
+
+      // For LOCATION_ADMIN, validate requested zone is within their zones
+      if (user.role === UserRole.LOCATION_ADMIN && query.zone) {
+        if (!hasZoneAccess(user, query.zone as Zone)) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to this zone',
+          });
+        }
+        filters.zone = query.zone;
+      } else if (query.zone) {
+        filters.zone = query.zone;
       }
 
       const result = await orderService.getOrders(
@@ -200,9 +236,19 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
 
       // Location admins can only see stats for their zones
-      let statsZone = zone;
-      if (user.role === UserRole.LOCATION_ADMIN && user.zones && user.zones.length > 0) {
-        statsZone = user.zones[0];
+      let statsZone = zone as Zone | undefined;
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        // Validate requested zone access
+        if (zone && !hasZoneAccess(user, zone as Zone)) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to this zone',
+          });
+        }
+        // Default to first zone if none specified
+        if (!zone && user.zones && user.zones.length > 0) {
+          statsZone = user.zones[0];
+        }
       }
 
       const stats = await orderService.getOrderStats(statsZone);
@@ -326,6 +372,17 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
       const user = request.user;
+
+      // For LOCATION_ADMIN, verify zone access before fetching
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        const hasAccess = await validateAdminZoneAccess(id, user);
+        if (!hasAccess) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to orders in this zone',
+          });
+        }
+      }
 
       const order = await orderService.getOrderById(id, user.userId, user.role);
       return reply.send(order);
@@ -539,6 +596,17 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
       const { status, note } = updateOrderStatusSchema.parse(request.body);
       const user = request.user;
 
+      // For LOCATION_ADMIN, verify zone access before updating
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        const hasAccess = await validateAdminZoneAccess(id, user);
+        if (!hasAccess) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to orders in this zone',
+          });
+        }
+      }
+
       const order = await orderService.updateOrderStatus(id, status, note, user.role);
       return reply.send(order);
     } catch (error) {
@@ -609,6 +677,17 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
       const user = request.user;
+
+      // For LOCATION_ADMIN, verify zone access before cancelling
+      if (user.role === UserRole.LOCATION_ADMIN) {
+        const hasAccess = await validateAdminZoneAccess(id, user);
+        if (!hasAccess) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to orders in this zone',
+          });
+        }
+      }
 
       const order = await orderService.cancelOrder(id, user.userId, user.role);
       return reply.send(order);

@@ -1,5 +1,16 @@
 node_modules
 # Keep environment variables out of version control
 .env
+.env.*
 
+# Firebase credentials - NEVER commit these
+firebase-service-account.json
+*-service-account.json
+*.credentials.json
+
+# Generated files
 /generated/prisma
+dist/
+
+# Uploads
+uploads/

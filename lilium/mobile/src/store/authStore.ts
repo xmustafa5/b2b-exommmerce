@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, LoginRequest } from '../types';
 import { authApi } from '../services/api';
+import { notificationService } from '../services/notifications';
 
 interface AuthState {
   user: User | null;
@@ -38,6 +39,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         refreshToken: response.tokens.refreshToken,
         isAuthenticated: true,
       });
+
+      // Register for push notifications after successful login
+      notificationService.registerTokenWithBackend().catch((err) => {
+        console.log('Failed to register push notifications:', err);
+      });
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -46,6 +52,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
+      // Unregister push notifications before logout
+      await notificationService.unregisterToken();
       await authApi.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -80,6 +88,11 @@ export const useAuthStore = create<AuthState>((set) => ({
           refreshToken,
           isAuthenticated: true,
           isLoading: false,
+        });
+
+        // Re-register for push notifications on app restart
+        notificationService.registerTokenWithBackend().catch((err) => {
+          console.log('Failed to register push notifications on hydrate:', err);
         });
       } else {
         set({ isLoading: false });

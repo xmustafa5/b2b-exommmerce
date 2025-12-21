@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572907778034",
+    "project_id": "lilium-b2b-b2026",
+    "storage_bucket": "lilium-b2b-b2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572907778034:android:d0c566c558ae991dad856b",
+        "android_client_info": {
+          "package_name": "com.lilium.b2b"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_DbCQD9HM2AFrSlDU_HhLbUZpbd2p-7k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
