@@ -474,7 +474,7 @@
   - [✅] Amount breakdown (subtotal, delivery, discount, total)
   - [✅] Reorder button with cart integration
   - [ ] Status timeline (skipped for MVP)
-- [ ] Implement push notifications (deferred to Phase 4)
+- [✅] Implement push notifications (completed in Module 4.2 - FCM integration)
 - [✅] Create profile screen (ProfileScreen):
   - [✅] Display user information (name, email, role, zones)
   - [✅] Logout functionality with confirmation
@@ -487,13 +487,13 @@
 - [ ] Add notification settings (deferred to Phase 4)
 
 **Backend Tasks:**
-- [ ] Setup Firebase Cloud Messaging (deferred to Phase 4)
-- [ ] Create notification APIs (deferred to Phase 4)
-- [ ] Implement push notification triggers (deferred to Phase 4)
+- [✅] Setup Firebase Cloud Messaging (completed in Module 4.2)
+- [✅] Create notification APIs (completed in Module 4.2)
+- [✅] Implement push notification triggers (completed in Module 4.2)
 
 **Deliverables:**
 - [✅] Order tracking complete (OrdersScreen + OrderDetailScreen with reorder)
-- [ ] Push notifications working (deferred to Phase 4)
+- [✅] Push notifications working (completed in Module 4.2 - FCM integration)
 - [✅] Profile management functional (basic profile screen with logout)
 - [ ] Needed items & favorites accessible (deferred to Phase 4)
 
@@ -534,14 +534,32 @@
 
 ---
 
-### **Module 4.2: Inventory Management** (Week 14)
+### **Module 4.2: Inventory Management with Push Notifications** (Week 14)
 
 **Backend Tasks:**
-- [ ] Create stock alert system
-- [ ] Implement low stock notifications
-- [ ] Create bulk stock update API
-- [ ] Add stock history tracking
-- [ ] Create restock notification trigger
+- [✅] Create stock alert system (inventory.service.ts with comprehensive alert logic)
+- [✅] Implement low stock notifications (Firebase Cloud Messaging integration)
+- [✅] Create bulk stock update API (PATCH /api/inventory/bulk-update)
+- [✅] Add stock history tracking (StockHistory model with full audit trail)
+- [✅] Create restock notification trigger (automatic alerts via notification.service.ts)
+- [✅] Setup Firebase Admin SDK for push notifications
+- [✅] Create FCM token management APIs:
+  - [✅] POST /api/notifications/register-token (register device token)
+  - [✅] POST /api/notifications/unregister-token (unregister on logout)
+  - [✅] GET /api/notifications/status (get notification status)
+- [✅] Create notification sending APIs:
+  - [✅] POST /api/notifications/send-to-user (send to specific user)
+  - [✅] POST /api/notifications/send-to-admins (broadcast to all admins)
+  - [✅] POST /api/notifications/send-to-zone (send to zone users)
+  - [✅] POST /api/notifications/test (test notification)
+- [✅] Create inventory management APIs:
+  - [✅] PATCH /api/inventory/stock/update (single product stock update)
+  - [✅] PATCH /api/inventory/bulk-update (bulk stock update)
+  - [✅] GET /api/inventory/low-stock (products below threshold)
+  - [✅] GET /api/inventory/out-of-stock (zero stock products)
+  - [✅] GET /api/inventory/history (stock change history)
+  - [✅] GET /api/inventory/report (full inventory report)
+  - [✅] GET /api/inventory/restock-suggestions (AI-powered restock recommendations)
 
 **Dashboard Tasks:**
 - [ ] Create inventory management page:
@@ -549,33 +567,91 @@
   - Low stock alerts
   - Out of stock items
   - Stock history
-- [ ] Add bulk stock update
+- [ ] Add bulk stock update UI
 - [ ] Create restock form
 - [ ] Implement notify-me bulk send
 - [ ] Add inventory filters/search
 
 **Mobile Tasks:**
-- [ ] Implement stock status in product cards
-- [ ] Add "back in stock" notifications
+- [✅] Implement stock status in product cards (already in ProductDetailScreen)
+- [✅] Setup Firebase Cloud Messaging (expo-notifications with FCM)
+- [✅] Configure Firebase project (google-services.json + GoogleService-Info.plist)
+- [✅] Create notification service (notifications.ts with full FCM integration):
+  - [✅] Permission handling
+  - [✅] Token registration/unregistration
+  - [✅] Notification listeners (foreground, background, tap response)
+  - [✅] Android notification channel (high priority)
+  - [✅] Navigation on notification tap
+- [✅] Create useNotifications hook for React components
+- [✅] Integrate notifications with auth flow:
+  - [✅] Auto-register on login
+  - [✅] Auto-unregister on logout
+  - [✅] Re-register on app restart (hydrate)
+- [✅] Add "back in stock" notification handling
+
+**Additional Implementations:**
+- [✅] Firebase Admin SDK (firebase-admin) in backend
+- [✅] Firebase service account configuration
+- [✅] FCM token field added to User model (Prisma migration)
+- [✅] expo-notifications package in mobile
+- [✅] app.json configured with notification plugin and Firebase files
+- [✅] Notification types: ORDER_UPDATE, STOCK_ALERT, BACK_IN_STOCK, PROMOTION
+- [✅] Deep linking from notifications to relevant screens
 
 **Deliverables:**
-- ✅ Inventory tracking complete
-- ✅ Low stock alerts working
-- ✅ Bulk updates functional
-- ✅ Restock notifications sent
+- [✅] Inventory tracking complete (full API with history, reports, suggestions)
+- [✅] Low stock alerts working (automatic notifications to admins)
+- [✅] Bulk updates functional (single and bulk stock update endpoints)
+- [✅] Push notifications system complete (Firebase FCM integration)
+- [✅] Mobile notification handling (registration, listeners, navigation)
+- [ ] Dashboard inventory UI (pending - next phase)
 
 ---
 
-### **Module 4.3: Location-Based Admin Roles** (Week 15)
+### **Module 4.3: Location-Based Admin Roles** (Week 15) ✅ BACKEND COMPLETE
 
 **Backend Tasks:**
-- [ ] Enhance RBAC for location admins
-- [ ] Add zone filtering to all APIs
-- [ ] Restrict order access by zone
-- [ ] Add admin management APIs:
-  - Create location admin
-  - Assign zones
-  - Manage permissions
+- [x] Enhance RBAC for location admins
+- [x] Add zone filtering to all APIs
+- [x] Restrict order access by zone
+- [x] Add admin management APIs:
+  - [x] Create location admin
+  - [x] Assign zones
+  - [x] Manage permissions
+  - [x] Reset password
+  - [x] Activate/deactivate
+
+**Implementation Notes (Backend):**
+- Created `admin.service.ts` with full CRUD for admin management
+- Created `/api/admins` routes (SUPER_ADMIN only for admin management)
+- Enhanced `auth.ts` middleware with zone filtering helpers:
+  - `getZoneFilter()` - Returns appropriate zones based on user role
+  - `hasZoneAccess()` - Checks if user has access to specific zone
+  - `getUserAccessibleZones()` - Gets user's accessible zones
+- Updated `orders.ts` with `validateAdminZoneAccess()` helper
+- Updated `products.ts` with `validateAdminProductAccess()` and `validateProductZones()` helpers
+- LOCATION_ADMIN can:
+  - View/manage shop owners in their zones
+  - Create/update products for their zones only
+  - View/update orders in their zones only
+  - Access analytics for their zones only
+- LOCATION_ADMIN cannot:
+  - Access other zones' data
+  - Create/manage other admins
+  - Delete products (SUPER_ADMIN only)
+
+**API Endpoints Created:**
+- `GET /api/admins` - List all admins (SUPER_ADMIN)
+- `GET /api/admins/stats` - Admin statistics (SUPER_ADMIN)
+- `GET /api/admins/:id` - Get admin details (SUPER_ADMIN)
+- `POST /api/admins` - Create admin (SUPER_ADMIN)
+- `PUT /api/admins/:id` - Update admin (SUPER_ADMIN)
+- `PATCH /api/admins/:id/zones` - Update admin zones (SUPER_ADMIN)
+- `PATCH /api/admins/:id/active` - Activate/deactivate admin (SUPER_ADMIN)
+- `POST /api/admins/:id/reset-password` - Reset admin password (SUPER_ADMIN)
+- `DELETE /api/admins/:id` - Delete admin (SUPER_ADMIN)
+- `GET /api/admins/shop-owners` - List shop owners (SUPER_ADMIN, LOCATION_ADMIN)
+- `PATCH /api/admins/shop-owners/:id/active` - Activate/deactivate shop owner (SUPER_ADMIN, LOCATION_ADMIN)
 
 **Dashboard Tasks:**
 - [ ] Create user management page (super admin only):
@@ -853,6 +929,6 @@
 
 ---
 
-**Document Owner:** Development Team  
-**Last Updated:** November 18, 2025  
-**Status:** Ready for Execution 🚀
+**Document Owner:** Development Team
+**Last Updated:** December 21, 2025
+**Status:** Phase 4 In Progress - Module 4.2 Complete 🚀

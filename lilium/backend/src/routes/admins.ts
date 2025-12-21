@@ -11,7 +11,10 @@ const createAdminSchema = z.object({
   password: z.string().min(8),
   name: z.string().min(2),
   phone: z.string().optional(),
-  role: z.literal(UserRole.LOCATION_ADMIN), // Only LOCATION_ADMIN can be created
+  role: z.nativeEnum(UserRole).refine(
+    (val) => val === UserRole.LOCATION_ADMIN,
+    { message: 'Only LOCATION_ADMIN can be created through API' }
+  ),
   zones: z.array(z.nativeEnum(Zone)).min(1),
 });
 
@@ -576,6 +579,99 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         message: 'Admin deactivated successfully',
         admin,
       });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
+    }
+  });
+
+  // PATCH /api/admins/shop-owners/:id/active - Activate/deactivate shop owner
+  fastify.patch('/shop-owners/:id/active', {
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
+    schema: {
+      description: 'Activate or deactivate a shop owner',
+      tags: ['admins'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        required: ['isActive'],
+        properties: {
+          isActive: { type: 'boolean' },
+        },
+      },
+      response: {
+        200: {
+          description: 'Shop owner status updated',
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            name: { type: 'string' },
+            isActive: { type: 'boolean' },
+          },
+        },
+        403: {
+          description: 'Forbidden - no access to this shop owner',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            message: { type: 'string' },
+          },
+        },
+        404: {
+          description: 'Shop owner not found',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const { isActive } = request.body;
+      const { role, zones: userZones } = request.user;
+
+      // For LOCATION_ADMIN, verify access to shop owner's zone
+      if (role === UserRole.LOCATION_ADMIN) {
+        const shopOwner = await fastify.prisma.user.findFirst({
+          where: { id, role: UserRole.SHOP_OWNER },
+          select: { zones: true },
+        });
+
+        if (!shopOwner) {
+          return reply.code(404).send({ error: 'Shop owner not found' });
+        }
+
+        // Check if admin has access to at least one of the shop owner's zones
+        const hasAccess = shopOwner.zones.some((zone: Zone) => userZones.includes(zone));
+        if (!hasAccess) {
+          return reply.code(403).send({
+            error: 'Forbidden',
+            message: 'You do not have access to this shop owner',
+          });
+        }
+      }
+
+      const user = await fastify.prisma.user.update({
+        where: { id },
+        data: { isActive },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          isActive: true,
+        },
+      });
+
+      return reply.send(user);
     } catch (error) {
       return handleError(error, reply, fastify.log);
     }
