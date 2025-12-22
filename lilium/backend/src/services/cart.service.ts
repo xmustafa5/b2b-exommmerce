@@ -530,4 +530,260 @@ export class CartService {
       estimatedDate,
     };
   }
+
+  /**
+   * Comprehensive cart validation (Module 3.3)
+   * Validates cart items for checkout readiness
+   */
+  async validateCartForCheckout(
+    items: Array<{ productId: string; quantity: number }>,
+    userId?: string,
+    zone?: Zone,
+    addressId?: string
+  ): Promise<{
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+    validatedItems: Array<{
+      productId: string;
+      productName: string;
+      quantity: number;
+      requestedQuantity: number;
+      availableStock: number;
+      price: number;
+      minOrderQty: number;
+      isAvailable: boolean;
+      isActive: boolean;
+      zones: Zone[];
+      validationStatus: 'valid' | 'insufficient_stock' | 'below_min_qty' | 'inactive' | 'not_found' | 'zone_mismatch';
+      suggestedQuantity?: number;
+    }>;
+    summary: {
+      totalItems: number;
+      validItems: number;
+      invalidItems: number;
+      subtotal: number;
+      estimatedDeliveryFee: number;
+      estimatedTotal: number;
+    };
+    promotionPreview?: {
+      potentialDiscount: number;
+      applicablePromotions: number;
+    };
+  }> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const validatedItems: Array<{
+      productId: string;
+      productName: string;
+      quantity: number;
+      requestedQuantity: number;
+      availableStock: number;
+      price: number;
+      minOrderQty: number;
+      isAvailable: boolean;
+      isActive: boolean;
+      zones: Zone[];
+      validationStatus: 'valid' | 'insufficient_stock' | 'below_min_qty' | 'inactive' | 'not_found' | 'zone_mismatch';
+      suggestedQuantity?: number;
+    }> = [];
+
+    let subtotal = 0;
+    let validCount = 0;
+    let invalidCount = 0;
+
+    // Get user's zone if userId provided
+    let userZone: Zone | undefined = zone;
+    if (!userZone && userId) {
+      const user = await this.fastify.prisma.user.findUnique({
+        where: { id: userId },
+      });
+      userZone = user?.zones?.[0];
+    }
+
+    // If addressId provided, get zone from address
+    if (!userZone && addressId) {
+      const address = await this.fastify.prisma.address.findUnique({
+        where: { id: addressId },
+      });
+      userZone = address?.zone;
+    }
+
+    // Validate each item
+    for (const item of items) {
+      const product = await this.fastify.prisma.product.findUnique({
+        where: { id: item.productId },
+        include: { company: true },
+      });
+
+      if (!product) {
+        errors.push(`Product ${item.productId} not found`);
+        validatedItems.push({
+          productId: item.productId,
+          productName: 'Unknown',
+          quantity: 0,
+          requestedQuantity: item.quantity,
+          availableStock: 0,
+          price: 0,
+          minOrderQty: 0,
+          isAvailable: false,
+          isActive: false,
+          zones: [],
+          validationStatus: 'not_found',
+        });
+        invalidCount++;
+        continue;
+      }
+
+      let validationStatus: 'valid' | 'insufficient_stock' | 'below_min_qty' | 'inactive' | 'not_found' | 'zone_mismatch' = 'valid';
+      let finalQuantity = item.quantity;
+      let suggestedQuantity: number | undefined;
+
+      // Check if product is active
+      if (!product.isActive) {
+        errors.push(`Product "${product.nameEn}" is no longer available`);
+        validationStatus = 'inactive';
+        invalidCount++;
+      }
+      // Check zone compatibility
+      else if (userZone && !product.zones.includes(userZone)) {
+        errors.push(`Product "${product.nameEn}" is not available in ${userZone} zone`);
+        validationStatus = 'zone_mismatch';
+        invalidCount++;
+      }
+      // Check stock availability
+      else if (product.stock < item.quantity) {
+        if (product.stock === 0) {
+          errors.push(`Product "${product.nameEn}" is out of stock`);
+          validationStatus = 'insufficient_stock';
+          invalidCount++;
+        } else {
+          warnings.push(`Only ${product.stock} units of "${product.nameEn}" available (requested ${item.quantity})`);
+          validationStatus = 'insufficient_stock';
+          suggestedQuantity = product.stock;
+          finalQuantity = product.stock;
+          validCount++;
+        }
+      }
+      // Check minimum order quantity
+      else if (item.quantity < product.minOrderQty) {
+        warnings.push(`Minimum order quantity for "${product.nameEn}" is ${product.minOrderQty} (requested ${item.quantity})`);
+        validationStatus = 'below_min_qty';
+        suggestedQuantity = product.minOrderQty;
+        finalQuantity = product.minOrderQty;
+        validCount++;
+      } else {
+        validCount++;
+      }
+
+      if (validationStatus === 'valid' || validationStatus === 'insufficient_stock' || validationStatus === 'below_min_qty') {
+        subtotal += product.price * finalQuantity;
+      }
+
+      validatedItems.push({
+        productId: product.id,
+        productName: product.nameEn,
+        quantity: finalQuantity,
+        requestedQuantity: item.quantity,
+        availableStock: product.stock,
+        price: product.price,
+        minOrderQty: product.minOrderQty,
+        isAvailable: product.stock > 0,
+        isActive: product.isActive,
+        zones: product.zones,
+        validationStatus,
+        suggestedQuantity,
+      });
+    }
+
+    // Calculate delivery fee
+    const estimatedDeliveryFee = userZone ? 2500 : 5000;
+
+    // Calculate promotion preview if there are valid items
+    let promotionPreview;
+    if (validCount > 0) {
+      const cartItemsForPromo = validatedItems
+        .filter(item => item.validationStatus === 'valid' || item.validationStatus === 'insufficient_stock' || item.validationStatus === 'below_min_qty')
+        .map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        }));
+
+      if (cartItemsForPromo.length > 0) {
+        // Import PromotionService dynamically to avoid circular dependency
+        const { PromotionService } = await import('./promotion.service');
+        const promotionService = new PromotionService(this.fastify);
+        const promoResult = await promotionService.applyPromotionsToCart(cartItemsForPromo);
+
+        promotionPreview = {
+          potentialDiscount: promoResult.totalDiscount,
+          applicablePromotions: promoResult.appliedPromotions.length,
+        };
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      validatedItems,
+      summary: {
+        totalItems: items.length,
+        validItems: validCount,
+        invalidItems: invalidCount,
+        subtotal,
+        estimatedDeliveryFee,
+        estimatedTotal: subtotal + estimatedDeliveryFee - (promotionPreview?.potentialDiscount || 0),
+      },
+      promotionPreview,
+    };
+  }
+
+  /**
+   * Quick stock check - lightweight validation for real-time updates
+   */
+  async quickStockCheck(items: Array<{ productId: string; quantity: number }>): Promise<{
+    allAvailable: boolean;
+    items: Array<{
+      productId: string;
+      available: boolean;
+      stock: number;
+      requested: number;
+    }>;
+  }> {
+    const results: Array<{
+      productId: string;
+      available: boolean;
+      stock: number;
+      requested: number;
+    }> = [];
+
+    let allAvailable = true;
+
+    for (const item of items) {
+      const product = await this.fastify.prisma.product.findUnique({
+        where: { id: item.productId },
+        select: { id: true, stock: true, isActive: true },
+      });
+
+      const available = !!(product && product.isActive && product.stock >= item.quantity);
+
+      if (!available) {
+        allAvailable = false;
+      }
+
+      results.push({
+        productId: item.productId,
+        available,
+        stock: product?.stock || 0,
+        requested: item.quantity,
+      });
+    }
+
+    return {
+      allAvailable,
+      items: results,
+    };
+  }
 }

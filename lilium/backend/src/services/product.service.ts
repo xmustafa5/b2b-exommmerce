@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Product, Category, Prisma, Zone } from '@prisma/client';
+import { CacheService, CACHE_KEYS, CACHE_TTL } from './cache.service';
 
 interface ProductFilters {
   categoryId?: string;
@@ -33,7 +34,25 @@ interface ProductCreateInput {
 interface ProductUpdateInput extends Partial<ProductCreateInput> {}
 
 export class ProductService {
-  constructor(private fastify: FastifyInstance) {}
+  private cacheService: CacheService;
+
+  constructor(private fastify: FastifyInstance) {
+    this.cacheService = new CacheService(fastify);
+  }
+
+  /**
+   * Generate cache key for product list queries
+   */
+  private getProductListCacheKey(
+    page: number,
+    limit: number,
+    filters: ProductFilters,
+    sortBy: string,
+    sortOrder: string
+  ): string {
+    const filterKey = JSON.stringify(filters);
+    return `list:${page}:${limit}:${sortBy}:${sortOrder}:${filterKey}`;
+  }
 
   // Get all products with pagination and filters
   async getProducts(
@@ -43,6 +62,14 @@ export class ProductService {
     sortBy: string = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'desc'
   ) {
+    // Try to get from cache
+    const cacheKey = this.getProductListCacheKey(page, limit, filters, sortBy, sortOrder);
+    const cached = await this.cacheService.get<any>(cacheKey, CACHE_KEYS.PRODUCTS);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for products list: ${cacheKey}`);
+      return cached;
+    }
+
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductWhereInput = {
@@ -79,7 +106,7 @@ export class ProductService {
       this.fastify.prisma.product.count({ where }),
     ]);
 
-    return {
+    const result = {
       data: products,
       pagination: {
         page,
@@ -88,10 +115,25 @@ export class ProductService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, result, {
+      prefix: CACHE_KEYS.PRODUCTS,
+      ttl: CACHE_TTL.PRODUCTS_LIST,
+    });
+
+    return result;
   }
 
   // Get single product by ID
   async getProductById(id: string) {
+    // Try to get from cache
+    const cached = await this.cacheService.get<Product & { category: Category }>(id, CACHE_KEYS.PRODUCT);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for product: ${id}`);
+      return cached;
+    }
+
     const product = await this.fastify.prisma.product.findUnique({
       where: { id },
       include: {
@@ -102,6 +144,12 @@ export class ProductService {
     if (!product) {
       throw this.fastify.httpErrors.notFound('Product not found');
     }
+
+    // Cache the result
+    await this.cacheService.set(id, product, {
+      prefix: CACHE_KEYS.PRODUCT,
+      ttl: CACHE_TTL.PRODUCT_DETAIL,
+    });
 
     return product;
   }
@@ -135,6 +183,9 @@ export class ProductService {
         category: true,
       },
     });
+
+    // Invalidate product list cache
+    await this.invalidateProductListCache();
 
     return product;
   }
@@ -180,6 +231,10 @@ export class ProductService {
       },
     });
 
+    // Invalidate caches
+    await this.cacheService.del(id, CACHE_KEYS.PRODUCT);
+    await this.invalidateProductListCache();
+
     return product;
   }
 
@@ -196,6 +251,10 @@ export class ProductService {
     await this.fastify.prisma.product.delete({
       where: { id },
     });
+
+    // Invalidate caches
+    await this.cacheService.del(id, CACHE_KEYS.PRODUCT);
+    await this.invalidateProductListCache();
 
     return { message: 'Product deleted successfully' };
   }
@@ -232,11 +291,24 @@ export class ProductService {
       data: { stock: newStock },
     });
 
+    // Invalidate caches
+    await this.cacheService.del(id, CACHE_KEYS.PRODUCT);
+    await this.invalidateProductListCache();
+
     return updatedProduct;
   }
 
   // Get featured products
   async getFeaturedProducts(zones?: Zone[]) {
+    const cacheKey = `featured:${zones?.join(',') || 'all'}`;
+
+    // Try to get from cache
+    const cached = await this.cacheService.get<any[]>(cacheKey, CACHE_KEYS.PRODUCTS);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for featured products`);
+      return cached;
+    }
+
     const where: Prisma.ProductWhereInput = {
       isFeatured: true,
       isActive: true,
@@ -254,11 +326,26 @@ export class ProductService {
       },
     });
 
+    // Cache the result
+    await this.cacheService.set(cacheKey, products, {
+      prefix: CACHE_KEYS.PRODUCTS,
+      ttl: CACHE_TTL.PRODUCTS_LIST,
+    });
+
     return products;
   }
 
   // Get products by category
   async getProductsByCategory(categoryId: string, zones?: Zone[]) {
+    const cacheKey = `category:${categoryId}:${zones?.join(',') || 'all'}`;
+
+    // Try to get from cache
+    const cached = await this.cacheService.get<any[]>(cacheKey, CACHE_KEYS.PRODUCTS);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for products by category: ${categoryId}`);
+      return cached;
+    }
+
     const where: Prisma.ProductWhereInput = {
       categoryId,
       isActive: true,
@@ -275,6 +362,27 @@ export class ProductService {
       },
     });
 
+    // Cache the result
+    await this.cacheService.set(cacheKey, products, {
+      prefix: CACHE_KEYS.PRODUCTS,
+      ttl: CACHE_TTL.PRODUCTS_LIST,
+    });
+
     return products;
+  }
+
+  /**
+   * Invalidate all product list caches
+   */
+  private async invalidateProductListCache(): Promise<void> {
+    await this.cacheService.delPattern(`${CACHE_KEYS.PRODUCTS}:*`);
+  }
+
+  /**
+   * Invalidate all product caches (used for bulk operations)
+   */
+  async invalidateAllProductCaches(): Promise<void> {
+    await this.cacheService.delPattern(`${CACHE_KEYS.PRODUCTS}:*`);
+    await this.cacheService.delPattern(`${CACHE_KEYS.PRODUCT}:*`);
   }
 }

@@ -801,6 +801,203 @@ const cartRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // Comprehensive cart validation for checkout (Module 3.3)
+  fastify.post('/validate-checkout', {
+    schema: {
+      tags: ['cart'],
+      summary: 'Validate cart for checkout',
+      description: 'Comprehensive cart validation that checks product availability, stock levels, minimum order quantities, zone compatibility, and calculates promotion previews. Returns detailed validation results with suggestions for fixing issues. Authentication optional but recommended for zone-aware validation.',
+      body: {
+        type: 'object',
+        required: ['items'],
+        properties: {
+          items: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 100,
+            items: {
+              type: 'object',
+              required: ['productId', 'quantity'],
+              properties: {
+                productId: { type: 'string', description: 'Product ID' },
+                quantity: { type: 'integer', minimum: 1, description: 'Quantity' }
+              }
+            },
+            description: 'Cart items to validate'
+          },
+          zone: { type: 'string', enum: ['KARKH', 'RUSAFA'], nullable: true, description: 'Delivery zone (optional if userId provided)' },
+          addressId: { type: 'string', nullable: true, description: 'Delivery address ID (optional, will use zone from address)' }
+        }
+      },
+      response: {
+        200: {
+          description: 'Cart validation result',
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            valid: { type: 'boolean', description: 'Whether cart is valid for checkout' },
+            errors: { type: 'array', items: { type: 'string' }, description: 'Critical errors that prevent checkout' },
+            warnings: { type: 'array', items: { type: 'string' }, description: 'Warnings (adjustments made but can proceed)' },
+            validatedItems: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  productId: { type: 'string' },
+                  productName: { type: 'string' },
+                  quantity: { type: 'integer', description: 'Final quantity (may be adjusted)' },
+                  requestedQuantity: { type: 'integer', description: 'Originally requested quantity' },
+                  availableStock: { type: 'integer' },
+                  price: { type: 'number' },
+                  minOrderQty: { type: 'integer' },
+                  isAvailable: { type: 'boolean' },
+                  isActive: { type: 'boolean' },
+                  zones: { type: 'array', items: { type: 'string' } },
+                  validationStatus: {
+                    type: 'string',
+                    enum: ['valid', 'insufficient_stock', 'below_min_qty', 'inactive', 'not_found', 'zone_mismatch'],
+                    description: 'Detailed validation status for this item'
+                  },
+                  suggestedQuantity: { type: 'integer', nullable: true, description: 'Suggested quantity to fix validation issue' }
+                }
+              }
+            },
+            summary: {
+              type: 'object',
+              properties: {
+                totalItems: { type: 'integer' },
+                validItems: { type: 'integer' },
+                invalidItems: { type: 'integer' },
+                subtotal: { type: 'number' },
+                estimatedDeliveryFee: { type: 'number' },
+                estimatedTotal: { type: 'number' }
+              }
+            },
+            promotionPreview: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                potentialDiscount: { type: 'number' },
+                applicablePromotions: { type: 'integer' }
+              }
+            }
+          }
+        },
+        400: {
+          description: 'Bad Request - Invalid input',
+          ...errorResponseSchema
+        }
+      }
+    }
+  }, async (request: any, reply) => {
+    try {
+      const { items, zone, addressId } = request.body;
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return reply.code(400).send({
+          error: 'Bad Request',
+          message: 'Cart items are required'
+        });
+      }
+
+      // Get userId from auth if available
+      let userId: string | undefined;
+      try {
+        await request.jwtVerify();
+        userId = request.user?.userId;
+      } catch {
+        // Not authenticated, continue without userId
+      }
+
+      const result = await cartService.validateCartForCheckout(
+        items,
+        userId,
+        zone,
+        addressId
+      );
+
+      return reply.send({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      return reply.code(400).send(error);
+    }
+  });
+
+  // Quick stock check endpoint - lightweight validation
+  fastify.post('/quick-stock-check', {
+    schema: {
+      tags: ['cart'],
+      summary: 'Quick stock availability check',
+      description: 'Lightweight endpoint to quickly check if requested quantities are available. Use for real-time cart updates without full validation overhead.',
+      body: {
+        type: 'object',
+        required: ['items'],
+        properties: {
+          items: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              required: ['productId', 'quantity'],
+              properties: {
+                productId: { type: 'string' },
+                quantity: { type: 'integer', minimum: 1 }
+              }
+            }
+          }
+        }
+      },
+      response: {
+        200: {
+          description: 'Stock check result',
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            allAvailable: { type: 'boolean', description: 'Whether all items are available in requested quantities' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  productId: { type: 'string' },
+                  available: { type: 'boolean' },
+                  stock: { type: 'integer' },
+                  requested: { type: 'integer' }
+                }
+              }
+            }
+          }
+        },
+        400: {
+          description: 'Bad Request',
+          ...errorResponseSchema
+        }
+      }
+    }
+  }, async (request: any, reply) => {
+    try {
+      const { items } = request.body;
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return reply.code(400).send({
+          error: 'Bad Request',
+          message: 'Items are required'
+        });
+      }
+
+      const result = await cartService.quickStockCheck(items);
+
+      return reply.send({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      return reply.code(400).send(error);
+    }
+  });
+
   // Calculate delivery fees
   fastify.post('/delivery-fee', {
     preHandler: [authenticate],

@@ -10,9 +10,11 @@ import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
 import multipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
+import websocket from '@fastify/websocket'
 import { PrismaClient } from '@prisma/client'
 import path from 'path'
 import 'dotenv/config'
+import { metricsPlugin } from './services/monitoring.service'
 
 // Schema for environment variables
 const schema = {
@@ -164,6 +166,9 @@ async function buildServer() {
       prefix: '/uploads/',
     })
 
+    // WebSocket support
+    await fastify.register(websocket)
+
     // Swagger Documentation
     await fastify.register(swagger, {
       openapi: {
@@ -182,11 +187,26 @@ async function buildServer() {
         tags: [
           { name: 'health', description: 'Health check endpoints' },
           { name: 'auth', description: 'Authentication endpoints' },
+          { name: 'Users', description: 'User profile management endpoints' },
+          { name: 'admins', description: 'Admin management endpoints' },
           { name: 'products', description: 'Product management endpoints' },
           { name: 'categories', description: 'Category management endpoints' },
           { name: 'orders', description: 'Order management endpoints' },
+          { name: 'cart', description: 'Shopping cart endpoints' },
           { name: 'Addresses', description: 'Address management endpoints' },
+          { name: 'promotions', description: 'Promotions and discounts endpoints' },
+          { name: 'Inventory', description: 'Inventory and stock management endpoints' },
+          { name: 'Notifications', description: 'Push notification endpoints' },
           { name: 'Analytics', description: 'Analytics and reporting endpoints' },
+          { name: 'notify-me', description: 'Back-in-stock notification endpoints' },
+          { name: 'export', description: 'Data export endpoints (CSV/PDF)' },
+          { name: 'companies', description: 'Company/vendor management endpoints' },
+          { name: 'vendors', description: 'Vendor portal endpoints' },
+          { name: 'payouts', description: 'Vendor payout endpoints' },
+          { name: 'settlements', description: 'Settlement management endpoints' },
+          { name: 'delivery', description: 'Delivery route management endpoints' },
+          { name: 'websocket', description: 'Real-time WebSocket endpoints' },
+          { name: 'monitoring', description: 'API monitoring and metrics endpoints' },
         ],
         components: {
           securitySchemes: {
@@ -218,13 +238,30 @@ async function buildServer() {
     // Register routes
     await fastify.register(import('./routes/health'), { prefix: '/api/health' })
     await fastify.register(import('./routes/auth.simple'), { prefix: '/api/auth' })
+    await fastify.register(import('./routes/users'), { prefix: '/api/users' })
+    await fastify.register(import('./routes/admins'), { prefix: '/api/admins' })
     await fastify.register(import('./routes/products'), { prefix: '/api/products' })
     await fastify.register(import('./routes/categories'), { prefix: '/api/categories' })
     await fastify.register(import('./routes/upload'), { prefix: '/api/upload' })
     await fastify.register(import('./routes/orders'), { prefix: '/api/orders' })
+    await fastify.register(import('./routes/cart'), { prefix: '/api/cart' })
     await fastify.register(import('./routes/promotions'), { prefix: '/api/promotions' })
     await fastify.register(import('./routes/addresses'), { prefix: '/api/addresses' })
+    await fastify.register(import('./routes/inventory'), { prefix: '/api/inventory' })
+    await fastify.register(import('./routes/notifications'), { prefix: '/api/notifications' })
     await fastify.register(import('./routes/analytics'), { prefix: '/api/analytics' })
+    await fastify.register(import('./routes/notify-me'), { prefix: '/api/notify-me' })
+    await fastify.register(import('./routes/export'), { prefix: '/api/export' })
+    await fastify.register(import('./routes/companies'), { prefix: '/api/companies' })
+    await fastify.register(import('./routes/vendors'), { prefix: '/api/vendors' })
+    await fastify.register(import('./routes/payouts'), { prefix: '/api/payouts' })
+    await fastify.register(import('./routes/settlements'), { prefix: '/api/settlements' })
+    await fastify.register(import('./routes/delivery'), { prefix: '/api/delivery' })
+    await fastify.register(import('./routes/internal'), { prefix: '/api/internal' })
+    await fastify.register(import('./routes/websocket'), { prefix: '/ws' })
+
+    // API Monitoring and Metrics plugin
+    await fastify.register(metricsPlugin)
 
     // Graceful shutdown
     const closeGracefully = async (signal: string) => {

@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Category, Prisma } from '@prisma/client';
+import { CacheService, CACHE_KEYS, CACHE_TTL } from './cache.service';
 
 interface CategoryCreateInput {
   nameEn: string;
@@ -25,10 +26,23 @@ function generateSlug(name: string): string {
 interface CategoryUpdateInput extends Partial<CategoryCreateInput> {}
 
 export class CategoryService {
-  constructor(private fastify: FastifyInstance) {}
+  private cacheService: CacheService;
+
+  constructor(private fastify: FastifyInstance) {
+    this.cacheService = new CacheService(fastify);
+  }
 
   // Get all categories with hierarchy
   async getCategories(includeInactive: boolean = false) {
+    const cacheKey = `all:${includeInactive ? 'with-inactive' : 'active-only'}`;
+
+    // Try to get from cache
+    const cached = await this.cacheService.get<any[]>(cacheKey, CACHE_KEYS.CATEGORIES);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for categories`);
+      return cached;
+    }
+
     const where: Prisma.CategoryWhereInput = includeInactive ? {} : { isActive: true };
 
     const categories = await this.fastify.prisma.category.findMany({
@@ -45,7 +59,15 @@ export class CategoryService {
     });
 
     // Build hierarchy tree from flat list
-    return this.buildCategoryTree(categories);
+    const result = this.buildCategoryTree(categories);
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, result, {
+      prefix: CACHE_KEYS.CATEGORIES,
+      ttl: CACHE_TTL.CATEGORIES,
+    });
+
+    return result;
   }
 
   // Build category tree structure from flat list
@@ -74,6 +96,13 @@ export class CategoryService {
 
   // Get single category by ID
   async getCategoryById(id: string) {
+    // Try to get from cache
+    const cached = await this.cacheService.get<any>(id, CACHE_KEYS.CATEGORY);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for category: ${id}`);
+      return cached;
+    }
+
     const category = await this.fastify.prisma.category.findUnique({
       where: { id },
       include: {
@@ -88,6 +117,12 @@ export class CategoryService {
     if (!category) {
       throw this.fastify.httpErrors.notFound('Category not found');
     }
+
+    // Cache the result
+    await this.cacheService.set(id, category, {
+      prefix: CACHE_KEYS.CATEGORY,
+      ttl: CACHE_TTL.CATEGORIES,
+    });
 
     return category;
   }
@@ -136,6 +171,9 @@ export class CategoryService {
         children: true,
       },
     });
+
+    // Invalidate category list cache
+    await this.invalidateCategoryListCache();
 
     return category;
   }
@@ -188,6 +226,10 @@ export class CategoryService {
         },
       },
     });
+
+    // Invalidate caches
+    await this.cacheService.del(id, CACHE_KEYS.CATEGORY);
+    await this.invalidateCategoryListCache();
 
     return category;
   }
@@ -245,6 +287,10 @@ export class CategoryService {
       });
     }
 
+    // Invalidate caches
+    await this.cacheService.del(id, CACHE_KEYS.CATEGORY);
+    await this.invalidateCategoryListCache();
+
     return { message: 'Category deleted successfully' };
   }
 
@@ -259,11 +305,23 @@ export class CategoryService {
 
     await this.fastify.prisma.$transaction(updates);
 
+    // Invalidate category list cache
+    await this.invalidateCategoryListCache();
+
     return { message: 'Categories reordered successfully' };
   }
 
   // Get category products count
   async getCategoryStats() {
+    const cacheKey = 'stats';
+
+    // Try to get from cache
+    const cached = await this.cacheService.get<any[]>(cacheKey, CACHE_KEYS.CATEGORIES);
+    if (cached) {
+      this.fastify.log.debug(`Cache hit for category stats`);
+      return cached;
+    }
+
     const stats = await this.fastify.prisma.category.findMany({
       select: {
         id: true,
@@ -280,6 +338,27 @@ export class CategoryService {
       },
     });
 
+    // Cache the result
+    await this.cacheService.set(cacheKey, stats, {
+      prefix: CACHE_KEYS.CATEGORIES,
+      ttl: CACHE_TTL.CATEGORIES,
+    });
+
     return stats;
+  }
+
+  /**
+   * Invalidate all category list caches
+   */
+  private async invalidateCategoryListCache(): Promise<void> {
+    await this.cacheService.delPattern(`${CACHE_KEYS.CATEGORIES}:*`);
+  }
+
+  /**
+   * Invalidate all category caches
+   */
+  async invalidateAllCategoryCaches(): Promise<void> {
+    await this.cacheService.delPattern(`${CACHE_KEYS.CATEGORIES}:*`);
+    await this.cacheService.delPattern(`${CACHE_KEYS.CATEGORY}:*`);
   }
 }
