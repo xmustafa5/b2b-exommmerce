@@ -128,3 +128,17 @@ export const inventoryQueryKeys = {
   restockSuggestions: (days?: number) =>
     ["inventory", "restockSuggestions", days] as const,
 };
+
+export const analyticsQueryKeys = {
+  all: ["analytics"] as const,
+  dashboard: (startDate?: string, endDate?: string, zone?: string) =>
+    ["analytics", "dashboard", startDate, endDate, zone] as const,
+  sales: (startDate?: string, endDate?: string, zone?: string) =>
+    ["analytics", "sales", startDate, endDate, zone] as const,
+  products: (startDate?: string, endDate?: string, zone?: string) =>
+    ["analytics", "products", startDate, endDate, zone] as const,
+  notifyRequests: (startDate?: string, endDate?: string) =>
+    ["analytics", "notifyRequests", startDate, endDate] as const,
+  vendorDashboard: () => ["analytics", "vendorDashboard"] as const,
+  adminDashboard: () => ["analytics", "adminDashboard"] as const,
+};

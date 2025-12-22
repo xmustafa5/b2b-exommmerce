@@ -40,17 +40,17 @@
 - [ ] Test restock suggestions
 
 #### 1.3 Analytics Dashboard
-- [ ] Create `types/analytics.ts` with all interfaces
-- [ ] Add analyticsQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/analytics.ts` API module
-- [ ] Create `hooks/useAnalytics.ts` custom hooks
-- [ ] Install recharts: `npm install recharts`
-- [ ] Create `dashboard/analytics/_components/stats-cards.tsx`
-- [ ] Create `dashboard/analytics/_components/sales-chart.tsx`
-- [ ] Create `dashboard/analytics/_components/orders-chart.tsx`
-- [ ] Create `dashboard/analytics/_components/top-products-table.tsx`
-- [ ] Create `dashboard/analytics/_components/date-range-picker.tsx`
-- [ ] Create `dashboard/analytics/page.tsx` main page
+- [x] Create `types/analytics.ts` with all interfaces
+- [x] Add analyticsQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/analytics.ts` API module
+- [x] Create `hooks/useAnalytics.ts` custom hooks
+- [x] Install recharts: `npm install recharts`
+- [x] Create `dashboard/analytics/_components/stats-cards.tsx`
+- [x] Create `dashboard/analytics/_components/sales-chart.tsx`
+- [x] Create `dashboard/analytics/_components/orders-chart.tsx`
+- [x] Create `dashboard/analytics/_components/top-products-table.tsx`
+- [x] Create `dashboard/analytics/_components/date-range-picker.tsx`
+- [x] Create `dashboard/analytics/page.tsx` main page
 - [ ] Test date range filtering
 - [ ] Test chart rendering
 
@@ -143,11 +143,11 @@
 - [ ] Test health status
 
 ### Common Tasks
-- [ ] Update sidebar navigation with new menu items
-- [ ] Install required shadcn/ui components (badge, calendar, tabs, chart)
-- [ ] Update `constants/queryKeys.ts` with all new keys
+- [x] Update sidebar navigation with new menu items (Analytics added)
+- [x] Install required shadcn/ui components (badge, calendar, tabs, popover)
+- [x] Update `constants/queryKeys.ts` with all new keys (promotions, inventory, analytics)
 - [ ] Create shared Zod schemas for form validation
-- [ ] Add loading skeletons for all pages
+- [x] Add loading skeletons for all pages
 - [ ] Implement error boundaries
 
 ### Final Testing
