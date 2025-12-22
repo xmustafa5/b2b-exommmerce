@@ -116,3 +116,15 @@ export const promotionsQueryKeys = {
   byType: (type: string) => ["promotions", "byType", type] as const,
   preview: (cartId: string) => ["promotions", "preview", cartId] as const,
 };
+
+export const inventoryQueryKeys = {
+  all: ["inventory"] as const,
+  lowStock: (zone?: string, threshold?: number) =>
+    ["inventory", "lowStock", zone, threshold] as const,
+  outOfStock: (zone?: string) => ["inventory", "outOfStock", zone] as const,
+  history: (productId: string, ...args: any[]) =>
+    ["inventory", "history", productId, ...args] as const,
+  report: (zone?: string) => ["inventory", "report", zone] as const,
+  restockSuggestions: (days?: number) =>
+    ["inventory", "restockSuggestions", days] as const,
+};

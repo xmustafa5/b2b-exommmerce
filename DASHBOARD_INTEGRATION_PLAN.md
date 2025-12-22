@@ -25,15 +25,15 @@
 - [ ] Test Bundle deals
 
 #### 1.2 Inventory Management
-- [ ] Create `types/inventory.ts` with all interfaces
-- [ ] Add inventoryQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/inventory.ts` API module
-- [ ] Create `hooks/useInventory.ts` custom hooks
-- [ ] Create `dashboard/inventory/_components/stock-update-dialog.tsx`
-- [ ] Create `dashboard/inventory/_components/bulk-update-dialog.tsx`
-- [ ] Create `dashboard/inventory/_components/stock-history-table.tsx`
-- [ ] Create `dashboard/inventory/_components/restock-suggestions-card.tsx`
-- [ ] Create `dashboard/inventory/page.tsx` main page
+- [x] Create `types/inventory.ts` with all interfaces
+- [x] Add inventoryQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/inventory.ts` API module
+- [x] Create `hooks/useInventory.ts` custom hooks
+- [x] Create `dashboard/inventory/_components/stock-update-dialog.tsx`
+- [x] Create `dashboard/inventory/_components/bulk-update-dialog.tsx`
+- [x] Create `dashboard/inventory/_components/stock-history-table.tsx`
+- [x] Create `dashboard/inventory/_components/restock-suggestions-card.tsx`
+- [x] Create `dashboard/inventory/page.tsx` main page
 - [ ] Test single stock update
 - [ ] Test bulk stock update
 - [ ] Test stock history display
