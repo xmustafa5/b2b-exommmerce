@@ -6,6 +6,162 @@
 
 ---
 
+## DEVELOPMENT PROGRESS TRACKER
+
+### Phase 1: Core Features (High Priority)
+
+#### 1.1 Promotions Management
+- [x] Create `types/promotion.ts` with all interfaces
+- [x] Add promotionsQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/promotions.ts` API module
+- [x] Create `hooks/usePromotions.ts` custom hooks
+- [x] Create `dashboard/promotions/_components/promotion-create-dialog.tsx`
+- [x] Create `dashboard/promotions/_components/promotion-edit-dialog.tsx`
+- [x] Create `dashboard/promotions/_components/promotion-delete-dialog.tsx`
+- [x] Create `dashboard/promotions/page.tsx` main page
+- [ ] Test percentage discount promotions
+- [ ] Test fixed amount promotions
+- [ ] Test Buy X Get Y promotions
+- [ ] Test Bundle deals
+
+#### 1.2 Inventory Management
+- [ ] Create `types/inventory.ts` with all interfaces
+- [ ] Add inventoryQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/inventory.ts` API module
+- [ ] Create `hooks/useInventory.ts` custom hooks
+- [ ] Create `dashboard/inventory/_components/stock-update-dialog.tsx`
+- [ ] Create `dashboard/inventory/_components/bulk-update-dialog.tsx`
+- [ ] Create `dashboard/inventory/_components/stock-history-table.tsx`
+- [ ] Create `dashboard/inventory/_components/restock-suggestions-card.tsx`
+- [ ] Create `dashboard/inventory/page.tsx` main page
+- [ ] Test single stock update
+- [ ] Test bulk stock update
+- [ ] Test stock history display
+- [ ] Test restock suggestions
+
+#### 1.3 Analytics Dashboard
+- [ ] Create `types/analytics.ts` with all interfaces
+- [ ] Add analyticsQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/analytics.ts` API module
+- [ ] Create `hooks/useAnalytics.ts` custom hooks
+- [ ] Install recharts: `npm install recharts`
+- [ ] Create `dashboard/analytics/_components/stats-cards.tsx`
+- [ ] Create `dashboard/analytics/_components/sales-chart.tsx`
+- [ ] Create `dashboard/analytics/_components/orders-chart.tsx`
+- [ ] Create `dashboard/analytics/_components/top-products-table.tsx`
+- [ ] Create `dashboard/analytics/_components/date-range-picker.tsx`
+- [ ] Create `dashboard/analytics/page.tsx` main page
+- [ ] Test date range filtering
+- [ ] Test chart rendering
+
+### Phase 2: Medium Priority Features
+
+#### 2.1 User Management
+- [ ] Create `types/user.ts` with all interfaces
+- [ ] Add usersQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/users.ts` API module
+- [ ] Create `hooks/useUsers.ts` custom hooks
+- [ ] Create `dashboard/users/_components/user-create-dialog.tsx`
+- [ ] Create `dashboard/users/_components/user-edit-dialog.tsx`
+- [ ] Create `dashboard/users/_components/user-delete-dialog.tsx`
+- [ ] Create `dashboard/users/_components/zone-assignment-dialog.tsx`
+- [ ] Create `dashboard/users/page.tsx` main page
+- [ ] Create `dashboard/users/admins/page.tsx` admins page
+- [ ] Test user CRUD operations
+- [ ] Test admin zone assignment
+
+#### 2.2 Notifications Management
+- [ ] Create `types/notification.ts` with interfaces
+- [ ] Add notificationsQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/notifications.ts` API module
+- [ ] Create `hooks/useNotifications.ts` custom hooks
+- [ ] Create `dashboard/notifications/_components/send-notification-dialog.tsx`
+- [ ] Create `dashboard/notifications/_components/notification-history-table.tsx`
+- [ ] Create `dashboard/notifications/page.tsx` main page
+- [ ] Test send to user
+- [ ] Test send to zone
+- [ ] Test broadcast to admins
+
+#### 2.3 Export Functionality
+- [ ] Create `actions/export.ts` API module
+- [ ] Add export button to Orders page
+- [ ] Add export button to Products page
+- [ ] Add export button to Inventory page
+- [ ] Test CSV export (orders)
+- [ ] Test CSV export (products)
+- [ ] Test CSV export (customers)
+- [ ] Test PDF export (sales report)
+- [ ] Test PDF export (inventory report)
+
+#### 2.4 Payouts Management
+- [ ] Create `types/payout.ts` with interfaces
+- [ ] Add payoutsQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/payouts.ts` API module
+- [ ] Create `hooks/usePayouts.ts` custom hooks
+- [ ] Create `dashboard/payouts/_components/payout-create-dialog.tsx`
+- [ ] Create `dashboard/payouts/_components/payout-status-dialog.tsx`
+- [ ] Create `dashboard/payouts/page.tsx` main page
+- [ ] Test payout creation
+- [ ] Test status updates
+
+#### 2.5 Settlements Management
+- [ ] Create `types/settlement.ts` with interfaces
+- [ ] Add settlementsQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/settlements.ts` API module
+- [ ] Create `hooks/useSettlements.ts` custom hooks
+- [ ] Create `dashboard/settlements/_components/settlement-create-dialog.tsx`
+- [ ] Create `dashboard/settlements/_components/settlement-status-dialog.tsx`
+- [ ] Create `dashboard/settlements/page.tsx` main page
+- [ ] Test settlement creation
+- [ ] Test status updates
+
+#### 2.6 Delivery Routes
+- [ ] Create `types/delivery.ts` with interfaces
+- [ ] Add deliveryQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/delivery.ts` API module
+- [ ] Create `hooks/useDelivery.ts` custom hooks
+- [ ] Create `dashboard/delivery/_components/route-create-dialog.tsx`
+- [ ] Create `dashboard/delivery/_components/route-edit-dialog.tsx`
+- [ ] Create `dashboard/delivery/_components/order-assignment-dialog.tsx`
+- [ ] Create `dashboard/delivery/page.tsx` main page
+- [ ] Test route CRUD
+- [ ] Test order assignment
+
+### Phase 3: Low Priority Features
+
+#### 3.1 API Monitoring Dashboard
+- [ ] Create `types/monitoring.ts` with interfaces
+- [ ] Add monitoringQueryKeys to `constants/queryKeys.ts`
+- [ ] Create `actions/monitoring.ts` API module
+- [ ] Create `hooks/useMonitoring.ts` custom hooks
+- [ ] Create `dashboard/monitoring/_components/metrics-cards.tsx`
+- [ ] Create `dashboard/monitoring/_components/endpoints-table.tsx`
+- [ ] Create `dashboard/monitoring/_components/health-status.tsx`
+- [ ] Create `dashboard/monitoring/_components/system-info.tsx`
+- [ ] Create `dashboard/monitoring/page.tsx` main page
+- [ ] Test metrics display
+- [ ] Test health status
+
+### Common Tasks
+- [ ] Update sidebar navigation with new menu items
+- [ ] Install required shadcn/ui components (badge, calendar, tabs, chart)
+- [ ] Update `constants/queryKeys.ts` with all new keys
+- [ ] Create shared Zod schemas for form validation
+- [ ] Add loading skeletons for all pages
+- [ ] Implement error boundaries
+
+### Final Testing
+- [ ] All CRUD operations work correctly
+- [ ] Form validation matches backend Zod schemas
+- [ ] Error handling displays user-friendly messages
+- [ ] Loading states show properly
+- [ ] Query invalidation works after mutations
+- [ ] Zone-based filtering works for Location Admins
+- [ ] Export downloads work correctly
+- [ ] Responsive design works on all screen sizes
+
+---
+
 ## OVERVIEW
 
 This document outlines the integration plan for connecting the Next.js Dashboard application with the completed backend API. The dashboard is located at `/lilium/frontend/` and uses:

@@ -6,6 +6,141 @@
 
 ---
 
+## DEVELOPMENT PROGRESS TRACKER
+
+### Phase 1: Core Features (High Priority)
+
+#### 1.1 Favorites Feature
+- [ ] Add Favorite interface to `src/types/index.ts`
+- [ ] Add favoritesApi methods to `src/services/api.ts`
+- [ ] Create `src/hooks/useFavorites.ts` with all hooks
+- [ ] Create `src/screens/FavoritesScreen.tsx`
+- [ ] Add heart button to ProductDetailScreen
+- [ ] Add Favorites tab to bottom navigation
+- [ ] Test add to favorites
+- [ ] Test remove from favorites
+- [ ] Test favorites list display
+
+#### 1.2 Notify-Me (Back in Stock)
+- [ ] Add NotifyMeSubscription interface to `src/types/index.ts`
+- [ ] Add notifyMeApi methods to `src/services/api.ts`
+- [ ] Create `src/hooks/useNotifyMe.ts` with all hooks
+- [ ] Add "Notify Me" button to ProductDetailScreen (out of stock)
+- [ ] Create `src/screens/NotifyMeListScreen.tsx` (optional)
+- [ ] Test subscribe to notification
+- [ ] Test unsubscribe from notification
+- [ ] Test notification delivery (when back in stock)
+
+#### 1.3 Cart Validation (Pre-Checkout)
+- [ ] Add CartValidationResult interface to `src/types/index.ts`
+- [ ] Add QuickStockCheck interface to `src/types/index.ts`
+- [ ] Add cartApi.validateCheckout method to `src/services/api.ts`
+- [ ] Add cartApi.quickStockCheck method to `src/services/api.ts`
+- [ ] Update CartContext with validateCart method
+- [ ] Update CheckoutScreen to run validation on load
+- [ ] Display validation errors in CheckoutScreen
+- [ ] Display warnings in CheckoutScreen
+- [ ] Display promotion preview/savings
+- [ ] Disable checkout button when invalid
+- [ ] Test validation with invalid items
+- [ ] Test validation with low stock items
+- [ ] Test validation with zone mismatch
+
+#### 1.4 Promotions Display
+- [ ] Add Promotion interface to `src/types/index.ts`
+- [ ] Add PromotionType enum to `src/types/index.ts`
+- [ ] Add promotionsApi methods to `src/services/api.ts`
+- [ ] Create `src/components/PromotionsBanner.tsx`
+- [ ] Add PromotionsBanner to HomeScreen
+- [ ] Style promotion cards (percentage, fixed, buy_x_get_y, bundle)
+- [ ] Test promotions banner display
+- [ ] Test empty state (no promotions)
+
+### Phase 2: Medium Priority Features
+
+#### 2.1 Address Management
+- [ ] Add Address interface to `src/types/index.ts`
+- [ ] Add AddressCreateInput interface to `src/types/index.ts`
+- [ ] Add addressesApi methods to `src/services/api.ts`
+- [ ] Create `src/hooks/useAddresses.ts` with all hooks
+- [ ] Create `src/screens/AddressesScreen.tsx`
+- [ ] Create `src/screens/AddAddressScreen.tsx`
+- [ ] Create `src/screens/EditAddressScreen.tsx`
+- [ ] Add address selection to CheckoutScreen
+- [ ] Add navigation routes for address screens
+- [ ] Test create address
+- [ ] Test update address
+- [ ] Test delete address
+- [ ] Test set default address
+- [ ] Test address selection in checkout
+
+#### 2.2 Enhanced Search & Filters
+- [ ] Add ProductFilters interface to `src/types/index.ts`
+- [ ] Create `src/components/FilterModal.tsx`
+- [ ] Install slider: `npm install @react-native-community/slider`
+- [ ] Add filter button to HomeScreen header
+- [ ] Implement price range filter
+- [ ] Implement category filter
+- [ ] Implement in-stock only filter
+- [ ] Implement sort options (price, name, date)
+- [ ] Update product list query with filters
+- [ ] Test filter combinations
+- [ ] Test filter reset
+
+#### 2.3 Real-Time Order Tracking
+- [ ] Install WebSocket: `npm install react-native-websocket`
+- [ ] Create `src/hooks/useOrderTracking.ts`
+- [ ] Update OrderDetailScreen with live status
+- [ ] Handle WebSocket connection
+- [ ] Handle WebSocket disconnection/reconnection
+- [ ] Test real-time status updates
+
+### Phase 3: Low Priority Features
+
+#### 3.1 Category Navigation
+- [ ] Add Category interface updates to `src/types/index.ts`
+- [ ] Add categoriesApi methods to `src/services/api.ts`
+- [ ] Create `src/hooks/useCategories.ts`
+- [ ] Create `src/screens/CategoriesScreen.tsx`
+- [ ] Create `src/components/CategoryCard.tsx`
+- [ ] Add Categories navigation
+- [ ] Implement subcategory navigation
+- [ ] Test category browsing
+- [ ] Test filter by category from category screen
+
+### Common Tasks
+- [ ] Update App.tsx with new navigation screens
+- [ ] Update MainTabs with Favorites tab
+- [ ] Update `src/types/index.ts` with all type exports
+- [ ] Update RootStackParamList with new screens
+- [ ] Update MainTabParamList with new tabs
+- [ ] Create shared loading components
+- [ ] Create shared error components
+- [ ] Set up API_BASE_URL for different environments
+
+### Package Installation
+- [ ] `npm install @react-native-community/slider`
+- [ ] `npm install react-native-websocket` (if using WebSocket)
+- [ ] `npm install @expo/vector-icons` (if not already)
+
+### Final Testing
+- [ ] Login/Logout works correctly
+- [ ] Products load with pagination
+- [ ] Add/Remove favorites works
+- [ ] Notify-me subscribe/unsubscribe works
+- [ ] Cart validation shows errors/warnings
+- [ ] Promotions banner displays correctly
+- [ ] Address CRUD operations work
+- [ ] Filters apply correctly
+- [ ] Order placement succeeds
+- [ ] Push notifications received
+- [ ] WebSocket updates work (if implemented)
+- [ ] Test on iOS simulator
+- [ ] Test on Android emulator
+- [ ] Test on physical device (if possible)
+
+---
+
 ## OVERVIEW
 
 This document outlines the integration plan for connecting the React Native Mobile application with the completed backend API. The mobile app is located at `/lilium/mobile/` and uses:

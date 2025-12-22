@@ -107,3 +107,12 @@ export const dashboardQueryKeys = {
   recentOrders: () => ["dashboard", "recentOrders"] as const,
   salesChart: (period: string) => ["dashboard", "salesChart", period] as const,
 };
+
+export const promotionsQueryKeys = {
+  all: ["promotions"] as const,
+  list: (...args: any[]) => ["promotions", "list", ...args] as const,
+  detail: (id: string) => ["promotions", "detail", id] as const,
+  active: () => ["promotions", "active"] as const,
+  byType: (type: string) => ["promotions", "byType", type] as const,
+  preview: (cartId: string) => ["promotions", "preview", cartId] as const,
+};
