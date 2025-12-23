@@ -130,15 +130,16 @@
 ### Phase 3: Low Priority Features
 
 #### 3.1 API Monitoring Dashboard
-- [ ] Create `types/monitoring.ts` with interfaces
-- [ ] Add monitoringQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/monitoring.ts` API module
-- [ ] Create `hooks/useMonitoring.ts` custom hooks
-- [ ] Create `dashboard/monitoring/_components/metrics-cards.tsx`
-- [ ] Create `dashboard/monitoring/_components/endpoints-table.tsx`
-- [ ] Create `dashboard/monitoring/_components/health-status.tsx`
-- [ ] Create `dashboard/monitoring/_components/system-info.tsx`
-- [ ] Create `dashboard/monitoring/page.tsx` main page
+- [x] Create `types/monitoring.ts` with interfaces
+- [x] Add monitoringQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/monitoring.ts` API module
+- [x] Create `hooks/useMonitoring.ts` custom hooks
+- [x] Create `dashboard/monitoring/_components/metrics-cards.tsx`
+- [x] Create `dashboard/monitoring/_components/endpoints-table.tsx`
+- [x] Create `dashboard/monitoring/_components/health-status.tsx`
+- [x] Create `dashboard/monitoring/_components/system-info.tsx`
+- [x] Create `dashboard/monitoring/page.tsx` main page
+- [x] Add Monitoring link to sidebar
 - [ ] Test metrics display
 - [ ] Test health status
 

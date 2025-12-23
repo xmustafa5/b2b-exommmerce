@@ -19,6 +19,7 @@ import {
   Settings,
   LogOut,
   Wallet,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const navigation = [
   { name: "Deliveries", href: "/dashboard/deliveries", icon: Truck },
   { name: "Payouts", href: "/dashboard/payouts", icon: Wallet },
   { name: "Settlements", href: "/dashboard/settlements", icon: DollarSign },
+  { name: "Monitoring", href: "/dashboard/monitoring", icon: Activity },
 ];
 
 const bottomNavigation = [

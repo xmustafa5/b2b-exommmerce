@@ -185,3 +185,11 @@ export const payoutsQueryKeys = {
   report: (companyId: string, startDate: string, endDate: string) =>
     ["payouts", "report", companyId, startDate, endDate] as const,
 };
+
+export const monitoringQueryKeys = {
+  all: ["monitoring"] as const,
+  metrics: () => ["monitoring", "metrics"] as const,
+  endpoints: () => ["monitoring", "endpoints"] as const,
+  health: () => ["monitoring", "health"] as const,
+  system: () => ["monitoring", "system"] as const,
+};
