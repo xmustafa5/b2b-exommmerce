@@ -21,6 +21,7 @@ async function main() {
     prisma.category.deleteMany(),
     prisma.address.deleteMany(),
     prisma.user.deleteMany(),
+    prisma.company.deleteMany(),
     prisma.analytics.deleteMany(),
   ]);
 
@@ -136,6 +137,23 @@ async function main() {
 
   console.log('✅ Created addresses');
 
+  // Create a company first (required for products)
+  const company = await prisma.company.create({
+    data: {
+      nameAr: 'شركة الدواء العراقية',
+      nameEn: 'Iraqi Medicine Company',
+      description: 'Leading pharmaceutical distributor in Iraq',
+      email: 'contact@iraqi-medicine.com',
+      phone: '+9647701234500',
+      address: 'Baghdad, Iraq',
+      zones: [Zone.KARKH, Zone.RUSAFA],
+      isActive: true,
+      commission: 10,
+    },
+  });
+
+  console.log('✅ Created company');
+
   // Create categories
   const medicinesCategory = await prisma.category.create({
     data: {
@@ -143,7 +161,7 @@ async function main() {
       nameEn: 'Medicines',
       slug: 'medicines',
       description: 'Pharmaceutical products and medications',
-      sortOrder: 1,
+      displayOrder: 1,
     },
   });
 
@@ -154,7 +172,7 @@ async function main() {
       slug: 'antibiotics',
       description: 'Antibacterial medications',
       parentId: medicinesCategory.id,
-      sortOrder: 1,
+      displayOrder: 1,
     },
   });
 
@@ -165,7 +183,7 @@ async function main() {
       slug: 'painkillers',
       description: 'Pain relief medications',
       parentId: medicinesCategory.id,
-      sortOrder: 2,
+      displayOrder: 2,
     },
   });
 
@@ -175,13 +193,13 @@ async function main() {
       nameEn: 'Medical Supplies',
       slug: 'medical-supplies',
       description: 'Medical equipment and supplies',
-      sortOrder: 2,
+      displayOrder: 2,
     },
   });
 
   console.log('✅ Created categories');
 
-  // Create products
+  // Create products (with companyId)
   const products = await prisma.product.createMany({
     data: [
       {
@@ -198,6 +216,7 @@ async function main() {
         unit: 'box',
         images: ['https://example.com/amoxicillin.jpg'],
         categoryId: antibiotics.id,
+        companyId: company.id,
         zones: [Zone.KARKH, Zone.RUSAFA],
         isActive: true,
         isFeatured: true,
@@ -216,6 +235,7 @@ async function main() {
         unit: 'box',
         images: ['https://example.com/paracetamol.jpg'],
         categoryId: painkillers.id,
+        companyId: company.id,
         zones: [Zone.KARKH, Zone.RUSAFA],
         isActive: true,
         isFeatured: true,
@@ -234,6 +254,7 @@ async function main() {
         unit: 'box',
         images: ['https://example.com/ibuprofen.jpg'],
         categoryId: painkillers.id,
+        companyId: company.id,
         zones: [Zone.KARKH, Zone.RUSAFA],
         isActive: true,
       },
@@ -250,6 +271,7 @@ async function main() {
         unit: 'piece',
         images: ['https://example.com/syringes.jpg'],
         categoryId: medicalSupplies.id,
+        companyId: company.id,
         zones: [Zone.KARKH, Zone.RUSAFA],
         isActive: true,
       },
@@ -266,6 +288,7 @@ async function main() {
         unit: 'box',
         images: ['https://example.com/masks.jpg'],
         categoryId: medicalSupplies.id,
+        companyId: company.id,
         zones: [Zone.KARKH],
         isActive: true,
       },

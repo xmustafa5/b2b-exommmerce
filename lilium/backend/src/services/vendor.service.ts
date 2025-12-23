@@ -665,6 +665,65 @@ export class VendorService {
   }
 
   /**
+   * Get all orders (for admin users without company)
+   */
+  async getAllOrders(
+    filter: VendorOrderFilter = {}
+  ): Promise<{ orders: any[]; total: number }> {
+    const {
+      status,
+      fromDate,
+      toDate,
+      search,
+      page = 1,
+      limit = 20,
+    } = filter;
+
+    const where: Prisma.OrderWhereInput = {
+      ...(status && { status }),
+      ...(fromDate && { createdAt: { gte: fromDate } }),
+      ...(toDate && { createdAt: { lte: toDate } }),
+      ...(search && {
+        OR: [
+          { orderNumber: { contains: search, mode: 'insensitive' } },
+          { user: { name: { contains: search, mode: 'insensitive' } } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+        ],
+      }),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.fastify.prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              businessName: true,
+            },
+          },
+          items: {
+            include: {
+              product: true,
+            },
+          },
+          address: true,
+          company: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.fastify.prisma.order.count({ where }),
+    ]);
+
+    return { orders, total };
+  }
+
+  /**
    * Export vendor data (products, orders, etc.)
    */
   async exportVendorData(

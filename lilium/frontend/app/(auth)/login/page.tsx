@@ -163,6 +163,25 @@ export default function LoginPage() {
                 Contact support
               </Link>
             </p>
+
+            {/* Dev Credentials */}
+            <div className="w-full rounded-lg border border-dashed border-muted-foreground/30 bg-muted/50 p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Development Credentials:
+              </p>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>
+                  <span className="font-medium">Super Admin:</span>{" "}
+                  <code className="bg-muted px-1 rounded">admin@b2b-platform.com</code> /{" "}
+                  <code className="bg-muted px-1 rounded">Admin@123</code>
+                </p>
+                <p>
+                  <span className="font-medium">Location Admin:</span>{" "}
+                  <code className="bg-muted px-1 rounded">admin.karkh@b2b-platform.com</code> /{" "}
+                  <code className="bg-muted px-1 rounded">Location@123</code>
+                </p>
+              </div>
+            </div>
           </CardFooter>
         </form>
       </Card>
