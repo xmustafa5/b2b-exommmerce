@@ -4,9 +4,10 @@ export type PromotionType = 'percentage' | 'fixed' | 'buy_x_get_y' | 'bundle';
 
 export interface Promotion {
   id: string;
-  code: string;
-  name: string;
-  description: string | null;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
   type: PromotionType;
   value: number;
   minPurchase: number | null;
@@ -14,25 +15,35 @@ export interface Promotion {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  zones: string[];
   usageLimit: number | null;
   usageCount: number;
-  zones: string[];
-  categoryIds: string[];
-  productIds: string[];
   // Buy X Get Y specific
   buyQuantity: number | null;
   getQuantity: number | null;
   // Bundle specific
-  bundleProducts: string[];
   bundlePrice: number | null;
   createdAt: string;
   updatedAt: string;
+  // Included relation
+  products?: Array<{
+    productId: string;
+    product: {
+      id: string;
+      nameEn: string;
+      nameAr: string;
+      sku: string;
+      price: number;
+      images?: string[];
+    };
+  }>;
 }
 
 export interface PromotionCreateInput {
-  code: string;
-  name: string;
-  description?: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   type: PromotionType;
   value: number;
   minPurchase?: number;
@@ -40,15 +51,13 @@ export interface PromotionCreateInput {
   startDate: string;
   endDate: string;
   isActive?: boolean;
-  usageLimit?: number;
   zones?: string[];
-  categoryIds?: string[];
   productIds?: string[];
   // Buy X Get Y specific
   buyQuantity?: number;
   getQuantity?: number;
   // Bundle specific
-  bundleProducts?: string[];
+  bundleProductIds?: string[];
   bundlePrice?: number;
 }
 
@@ -59,12 +68,14 @@ export interface PromotionFilters {
   isActive?: boolean;
   zone?: string;
   search?: string;
+  includeInactive?: boolean;
 }
 
 export interface PromotionPreview {
   applicablePromotions: Array<{
     id: string;
-    name: string;
+    nameEn: string;
+    nameAr: string;
     type: PromotionType;
     discount: number;
   }>;

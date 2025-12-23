@@ -45,7 +45,16 @@
       "Bash(npm test:*)",
       "Bash(timeout 15 npm run dev:*)",
       "Bash(ls:*)",
-      "Bash(npx prisma migrate dev:*)"
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(pkill:*)",
+      "Bash(printf:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWppZTU4ZmIwMDAwMTZjZ242MzlkdmpvIiwiZW1haWwiOiJhZG1pbkBiMmItcGxhdGZvcm0uY29tIiwicm9sZSI6IlNVUEVSX0FETUlOIiwiem9uZXMiOlsiS0FSS0giLCJSVVNBRkEiXSwiaWF0IjoxNzY2NDg0OTUyLCJleHAiOjE3NjY0ODg1NTJ9.zYJaFxcTSRc2-20Gb05BQPxZ7rOmWuwBlfFI2b546-I\")",
+      "Bash(__NEW_LINE__ echo \"=== Testing /api/delivery/active ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Testing /api/settlements/pending-cash ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Testing /api/settlements/summary ===\")",
+      "Bash(cat:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWppZTU4ZmIwMDAwMTZjZ242MzlkdmpvIiwiZW1haWwiOiJhZG1pbkBiMmItcGxhdGZvcm0uY29tIiwicm9sZSI6IlNVUEVSX0FETUlOIiwiem9uZXMiOlsiS0FSS0giLCJSVVNBRkEiXSwiaWF0IjoxNzY2NDg2OTUxLCJleHAiOjE3NjY0OTA1NTF9.w3VLM1KvZ7lm0MGlazoPbJX0rcJoyIibdpKxatP5Dm4\")",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

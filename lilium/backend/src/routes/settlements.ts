@@ -255,17 +255,18 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
+
+        if (!companyId) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'Company ID is required'
+          });
+        }
       }
 
-      if (!companyId) {
-        return reply.code(400).send({
-          error: 'Bad Request',
-          message: 'Company ID is required'
-        });
-      }
-
+      // Admins can get aggregate summary (companyId = null means all companies)
       const summary = await settlementService.getSettlementSummary(
-        companyId,
+        companyId || null,
         startDate ? new Date(startDate) : undefined,
         endDate ? new Date(endDate) : undefined
       );
@@ -622,16 +623,17 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
+
+        if (!companyId) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'Company ID is required'
+          });
+        }
       }
 
-      if (!companyId) {
-        return reply.code(400).send({
-          error: 'Bad Request',
-          message: 'Company ID is required'
-        });
-      }
-
-      const pendingCollections = await settlementService.getPendingCashCollections(companyId);
+      // Admins can get all pending collections (companyId = null means all companies)
+      const pendingCollections = await settlementService.getPendingCashCollections(companyId || null);
 
       return reply.send({
         success: true,
@@ -988,16 +990,17 @@ const settlementRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
+
+        if (!companyId) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'Company ID is required'
+          });
+        }
       }
 
-      if (!companyId) {
-        return reply.code(400).send({
-          error: 'Bad Request',
-          message: 'Company ID is required'
-        });
-      }
-
-      const history = await settlementService.getSettlementHistory(companyId, limit);
+      // Admins can get all settlement history (companyId = null means all companies)
+      const history = await settlementService.getSettlementHistory(companyId || null, limit);
 
       return reply.send({
         success: true,

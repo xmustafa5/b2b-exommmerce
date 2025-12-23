@@ -47,8 +47,7 @@ export function PromotionDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Promotion</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the promotion &quot;{promotion.name}&quot;
-            (code: {promotion.code})?
+            Are you sure you want to delete the promotion &quot;{promotion.nameEn}&quot;?
             {hasUsage && (
               <span className="mt-2 block text-amber-600">
                 This promotion has been used {promotion.usageCount} time(s).

@@ -243,7 +243,6 @@ export const createPromotionSchema = z.object({
   isActive: z.boolean().default(true),
   usageLimit: z.number().int().positive().optional(),
   productIds: z.array(z.string()).optional(),
-  categoryIds: z.array(z.string()).optional(),
 }).refine(
   (data) => data.endDate > data.startDate,
   { message: 'End date must be after start date', path: ['endDate'] }

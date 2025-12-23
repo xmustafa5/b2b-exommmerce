@@ -28,9 +28,10 @@ import { getErrorMessage } from "@/actions/config";
 import type { Promotion, PromotionType } from "@/types/promotion";
 
 const editPromotionSchema = z.object({
-  code: z.string().min(1, "Promotion code is required").max(50),
-  name: z.string().min(1, "Name is required").max(100),
-  description: z.string().optional(),
+  nameEn: z.string().min(1, "Name (English) is required").max(100),
+  nameAr: z.string().min(1, "Name (Arabic) is required").max(100),
+  descriptionEn: z.string().optional(),
+  descriptionAr: z.string().optional(),
   type: z.enum(["percentage", "fixed", "buy_x_get_y", "bundle"]),
   value: z.coerce.number().min(0, "Value must be positive"),
   minPurchase: z.coerce.number().min(0).optional(),
@@ -38,7 +39,6 @@ const editPromotionSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   isActive: z.boolean().optional(),
-  usageLimit: z.coerce.number().int().min(0).optional(),
   zones: z.array(z.string()).optional(),
   // Buy X Get Y specific
   buyQuantity: z.coerce.number().int().min(1).optional(),
@@ -83,9 +83,10 @@ export function PromotionEditDialog({
   } = useForm<EditPromotionFormData>({
     resolver: zodResolver(editPromotionSchema),
     defaultValues: {
-      code: promotion.code,
-      name: promotion.name,
-      description: promotion.description || "",
+      nameEn: promotion.nameEn,
+      nameAr: promotion.nameAr,
+      descriptionEn: promotion.descriptionEn || "",
+      descriptionAr: promotion.descriptionAr || "",
       type: promotion.type,
       value: promotion.value,
       minPurchase: promotion.minPurchase || undefined,
@@ -93,7 +94,6 @@ export function PromotionEditDialog({
       startDate: promotion.startDate.split("T")[0],
       endDate: promotion.endDate.split("T")[0],
       isActive: promotion.isActive,
-      usageLimit: promotion.usageLimit || undefined,
       zones: promotion.zones || [],
       buyQuantity: promotion.buyQuantity || undefined,
       getQuantity: promotion.getQuantity || undefined,
@@ -108,9 +108,10 @@ export function PromotionEditDialog({
   useEffect(() => {
     if (open) {
       reset({
-        code: promotion.code,
-        name: promotion.name,
-        description: promotion.description || "",
+        nameEn: promotion.nameEn,
+        nameAr: promotion.nameAr,
+        descriptionEn: promotion.descriptionEn || "",
+        descriptionAr: promotion.descriptionAr || "",
         type: promotion.type,
         value: promotion.value,
         minPurchase: promotion.minPurchase || undefined,
@@ -118,7 +119,6 @@ export function PromotionEditDialog({
         startDate: promotion.startDate.split("T")[0],
         endDate: promotion.endDate.split("T")[0],
         isActive: promotion.isActive,
-        usageLimit: promotion.usageLimit || undefined,
         zones: promotion.zones || [],
         buyQuantity: promotion.buyQuantity || undefined,
         getQuantity: promotion.getQuantity || undefined,
@@ -131,9 +131,11 @@ export function PromotionEditDialog({
     try {
       const submitData = {
         ...data,
+        // Convert date strings to ISO datetime format
+        startDate: new Date(data.startDate).toISOString(),
+        endDate: new Date(`${data.endDate}T23:59:59`).toISOString(),
         minPurchase: data.minPurchase || undefined,
         maxDiscount: data.maxDiscount || undefined,
-        usageLimit: data.usageLimit || undefined,
         zones: data.zones?.length ? data.zones : undefined,
         buyQuantity: data.buyQuantity || undefined,
         getQuantity: data.getQuantity || undefined,
@@ -171,41 +173,56 @@ export function PromotionEditDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Basic Info */}
+          {/* Name Fields */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="code">Promotion Code *</Label>
+              <Label htmlFor="nameEn">Name (English) *</Label>
               <Input
-                id="code"
-                placeholder="e.g., SUMMER2024"
-                {...register("code")}
+                id="nameEn"
+                placeholder="e.g., Summer Sale"
+                {...register("nameEn")}
               />
-              {errors.code && (
-                <p className="text-sm text-destructive">{errors.code.message}</p>
+              {errors.nameEn && (
+                <p className="text-sm text-destructive">{errors.nameEn.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="nameAr">Name (Arabic) *</Label>
               <Input
-                id="name"
-                placeholder="e.g., Summer Sale"
-                {...register("name")}
+                id="nameAr"
+                placeholder="e.g., تخفيضات الصيف"
+                dir="rtl"
+                {...register("nameAr")}
               />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
+              {errors.nameAr && (
+                <p className="text-sm text-destructive">{errors.nameAr.message}</p>
               )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <textarea
-              id="description"
-              className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              placeholder="Enter promotion description"
-              {...register("description")}
-            />
+          {/* Description Fields */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="descriptionEn">Description (English)</Label>
+              <textarea
+                id="descriptionEn"
+                className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Enter promotion description"
+                {...register("descriptionEn")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descriptionAr">Description (Arabic)</Label>
+              <textarea
+                id="descriptionAr"
+                className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="أدخل وصف العرض"
+                dir="rtl"
+                {...register("descriptionAr")}
+              />
+            </div>
           </div>
 
           {/* Type and Value */}
@@ -292,7 +309,7 @@ export function PromotionEditDialog({
           )}
 
           {/* Limits */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="minPurchase">Min Purchase</Label>
               <Input
@@ -312,17 +329,6 @@ export function PromotionEditDialog({
                 step="0.01"
                 placeholder="e.g., 100.00"
                 {...register("maxDiscount")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="usageLimit">Usage Limit</Label>
-              <Input
-                id="usageLimit"
-                type="number"
-                min="0"
-                placeholder="e.g., 100"
-                {...register("usageLimit")}
               />
             </div>
           </div>
@@ -366,14 +372,6 @@ export function PromotionEditDialog({
                 </Button>
               ))}
             </div>
-          </div>
-
-          {/* Usage Stats (Read-only) */}
-          <div className="rounded-md bg-muted p-3">
-            <p className="text-sm text-muted-foreground">
-              Usage: {promotion.usageCount}
-              {promotion.usageLimit ? ` / ${promotion.usageLimit}` : " (unlimited)"}
-            </p>
           </div>
 
           <DialogFooter>

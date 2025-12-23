@@ -326,19 +326,22 @@ export class DeliveryService {
   }
 
   /**
-   * Get delivery metrics for vendor/company
+   * Get delivery metrics for vendor/company (or all companies if companyId is null)
    */
-  async getDeliveryMetrics(companyId: string, period: 'today' | 'week' | 'month' = 'today'): Promise<DeliveryMetrics> {
+  async getDeliveryMetrics(companyId: string | null, period: 'today' | 'week' | 'month' = 'today'): Promise<DeliveryMetrics> {
     try {
       const startDate = this.getStartDate(period);
 
       const orders = await this.fastify.prisma.order.findMany({
         where: {
-          items: {
-            some: {
-              product: { companyId }
+          // If companyId is provided, filter by company; otherwise get all orders
+          ...(companyId && {
+            items: {
+              some: {
+                product: { companyId }
+              }
             }
-          },
+          }),
           createdAt: {
             gte: startDate
           }
@@ -347,8 +350,10 @@ export class DeliveryService {
 
       const totalDeliveries = orders.length;
       const completedDeliveries = orders.filter(o => o.status === OrderStatus.DELIVERED).length;
+      // Use correct Prisma OrderStatus values:
+      // CONFIRMED = accepted, PROCESSING = preparing, SHIPPED = on the way
       const pendingDeliveries = orders.filter(o =>
-        [OrderStatus.PENDING, OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.ON_THE_WAY].includes(o.status)
+        [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED].includes(o.status)
       ).length;
 
       // Calculate on-time rate (delivered within estimated time)

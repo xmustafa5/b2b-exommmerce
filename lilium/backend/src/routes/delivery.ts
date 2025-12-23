@@ -757,16 +757,17 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
         companyId = user.companyId;
+
+        if (!companyId) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'Company ID is required'
+          });
+        }
       }
 
-      if (!companyId) {
-        return reply.code(400).send({
-          error: 'Bad Request',
-          message: 'Company ID is required'
-        });
-      }
-
-      const metrics = await deliveryService.getDeliveryMetrics(companyId, period);
+      // Admins can get aggregate metrics (companyId = null means all companies)
+      const metrics = await deliveryService.getDeliveryMetrics(companyId || null, period);
 
       return reply.send({
         success: true,
@@ -1023,10 +1024,12 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
+      // Use existing Prisma OrderStatus values:
+      // CONFIRMED = order accepted, PROCESSING = preparing, SHIPPED = on the way
       const activeStatuses = [
-        OrderStatus.ACCEPTED,
-        OrderStatus.PREPARING,
-        OrderStatus.ON_THE_WAY
+        OrderStatus.CONFIRMED,
+        OrderStatus.PROCESSING,
+        OrderStatus.SHIPPED
       ];
 
       const activeOrders = await fastify.prisma.order.findMany({
@@ -1048,8 +1051,12 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
               id: true,
               name: true,
               phone: true,
-              address: true,
-              zone: true
+              zones: true,
+              // Include addresses relation instead of address field
+              addresses: {
+                where: { isDefault: true },
+                take: 1
+              }
             }
           },
           items: {
@@ -1062,12 +1069,14 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
               product: {
                 select: {
                   id: true,
-                  name: true,
+                  nameEn: true,
+                  nameAr: true,
                   price: true,
                   company: {
                     select: {
                       id: true,
-                      name: true
+                      nameEn: true,
+                      nameAr: true
                     }
                   }
                 }
@@ -1080,11 +1089,11 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
         }
       });
 
-      // Group orders by status
+      // Group orders by status (using correct Prisma enum values)
       const groupedOrders = {
-        accepted: activeOrders.filter(o => o.status === OrderStatus.ACCEPTED),
-        preparing: activeOrders.filter(o => o.status === OrderStatus.PREPARING),
-        onTheWay: activeOrders.filter(o => o.status === OrderStatus.ON_THE_WAY)
+        accepted: activeOrders.filter(o => o.status === OrderStatus.CONFIRMED),
+        preparing: activeOrders.filter(o => o.status === OrderStatus.PROCESSING),
+        onTheWay: activeOrders.filter(o => o.status === OrderStatus.SHIPPED)
       };
 
       return reply.send({
@@ -1100,6 +1109,66 @@ const deliveryRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       return reply.code(500).send(error);
     }
+  });
+
+  // Get all drivers (placeholder - returns empty array since Driver role doesn't exist yet)
+  fastify.get('/drivers', {
+    preHandler: [authenticate],
+    schema: {
+      tags: ['delivery'],
+      summary: 'Get all drivers',
+      description: 'Returns all users with driver role. Note: Driver role is not yet implemented.',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              email: { type: 'string' },
+              phone: { type: 'string' },
+              isAvailable: { type: 'boolean' }
+            }
+          }
+        }
+      }
+    }
+  }, async (_request: any, reply) => {
+    // Return empty array since Driver role doesn't exist in schema yet
+    // TODO: Add Driver role to UserRole enum and implement proper driver management
+    return reply.send([]);
+  });
+
+  // Get available drivers (placeholder)
+  fastify.get('/drivers/available', {
+    preHandler: [authenticate],
+    schema: {
+      tags: ['delivery'],
+      summary: 'Get available drivers',
+      description: 'Returns all available drivers. Note: Driver role is not yet implemented.',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              email: { type: 'string' },
+              phone: { type: 'string' },
+              isAvailable: { type: 'boolean' }
+            }
+          }
+        }
+      }
+    }
+  }, async (_request: any, reply) => {
+    // Return empty array since Driver role doesn't exist in schema yet
+    // TODO: Add Driver role to UserRole enum and implement proper driver management
+    return reply.send([]);
   });
 };
 

@@ -21,6 +21,12 @@
             "args": [
                 "@playwright/mcp@latest"
             ]
+        },
+        "browsermcp": {
+            "command": "npx",
+            "args": [
+                "@browsermcp/mcp@latest"
+            ]
         }
     }
 }

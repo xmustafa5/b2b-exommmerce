@@ -1,5 +1,12 @@
 import { FastifyInstance } from 'fastify';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
+
+// Payment status values (String field, not enum)
+const PAYMENT_STATUS = {
+  PENDING: 'pending',
+  PAID: 'paid',
+  FAILED: 'failed',
+} as const;
 
 interface Settlement {
   id: string;
@@ -121,7 +128,7 @@ export class SettlementService {
         );
         totalRevenue += orderRevenue;
 
-        if (order.paymentMethod === 'CASH_ON_DELIVERY' && order.paymentStatus === PaymentStatus.PAID) {
+        if (order.paymentMethod === 'CASH_ON_DELIVERY' && order.paymentStatus === PAYMENT_STATUS.PAID) {
           cashCollected += orderRevenue;
         }
       });
@@ -162,49 +169,59 @@ export class SettlementService {
   }
 
   /**
-   * Get settlement summary for a company
+   * Get settlement summary for a company (or all companies if companyId is null)
    */
   async getSettlementSummary(
-    companyId: string,
+    companyId: string | null,
     startDate?: Date,
     endDate?: Date
   ): Promise<SettlementSummary> {
     try {
-      const company = await this.fastify.prisma.company.findUnique({
-        where: { id: companyId },
-        select: {
-          name: true,
-          commissionRate: true
-        }
-      });
+      let company = null;
+      let companyName = 'All Companies';
+      let commissionRate = 0;
 
-      if (!company) {
-        throw this.fastify.httpErrors.notFound('Company not found');
+      if (companyId) {
+        company = await this.fastify.prisma.company.findUnique({
+          where: { id: companyId },
+          select: {
+            name: true,
+            commissionRate: true
+          }
+        });
+
+        if (!company) {
+          throw this.fastify.httpErrors.notFound('Company not found');
+        }
+        companyName = company.name;
+        commissionRate = company.commissionRate ?? 0;
       }
 
       // Default to last 30 days if no dates provided
       const end = endDate || new Date();
       const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      // Get all orders for the period
+      // Get all orders for the period (filter by company if provided)
       const orders = await this.fastify.prisma.order.findMany({
         where: {
-          items: {
-            some: {
-              product: { companyId }
+          ...(companyId && {
+            items: {
+              some: {
+                product: { companyId }
+              }
             }
-          },
+          }),
           createdAt: {
             gte: start,
             lte: end
           }
         },
         include: {
-          items: {
+          items: companyId ? {
             where: {
               product: { companyId }
             }
-          }
+          } : true
         }
       });
 
@@ -229,7 +246,7 @@ export class SettlementService {
           totalRevenue += orderRevenue;
 
           if (order.paymentMethod === 'CASH_ON_DELIVERY') {
-            if (order.paymentStatus === PaymentStatus.PAID) {
+            if (order.paymentStatus === PAYMENT_STATUS.PAID) {
               cashCollected += orderRevenue;
             } else {
               pendingCash += orderRevenue;
@@ -238,19 +255,21 @@ export class SettlementService {
             onlinePayments += orderRevenue;
           }
         } else if (order.paymentMethod === 'CASH_ON_DELIVERY' &&
-                   [OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.ON_THE_WAY].includes(order.status)) {
+                   // Use correct Prisma OrderStatus values: CONFIRMED, PROCESSING, SHIPPED
+                   [OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED].includes(order.status)) {
           toCollect += orderRevenue;
         }
       });
 
-      const commissionRate = (company.commissionRate || 10) / 100;
-      const platformCommission = totalRevenue * commissionRate;
+      // Calculate commission rate (use company rate or default 10%)
+      const effectiveCommissionRate = (commissionRate || 10) / 100;
+      const platformCommission = totalRevenue * effectiveCommissionRate;
       const vendorPayout = totalRevenue - platformCommission;
-      const toRemit = cashCollected * commissionRate;
+      const toRemit = cashCollected * effectiveCommissionRate;
 
       const summary: SettlementSummary = {
-        companyId,
-        companyName: company.name,
+        companyId: companyId || 'all',
+        companyName,
         period: {
           start,
           end
@@ -329,12 +348,12 @@ export class SettlementService {
         const reconciliation: CashReconciliation = {
           orderId: order.id,
           orderAmount,
-          cashCollected: order.paymentStatus === PaymentStatus.PAID ? orderAmount : 0,
+          cashCollected: order.paymentStatus === PAYMENT_STATUS.PAID ? orderAmount : 0,
           collectedBy: order.assignedDriverId || 'Unknown',
           collectedAt: order.paidAt || order.deliveredAt || new Date(),
-          verified: order.paymentStatus === PaymentStatus.PAID,
-          discrepancy: order.paymentStatus === PaymentStatus.PAID ? 0 : orderAmount,
-          notes: order.paymentStatus !== PaymentStatus.PAID ? 'Cash not yet collected' : undefined
+          verified: order.paymentStatus === PAYMENT_STATUS.PAID,
+          discrepancy: order.paymentStatus === PAYMENT_STATUS.PAID ? 0 : orderAmount,
+          notes: order.paymentStatus !== PAYMENT_STATUS.PAID ? 'Cash not yet collected' : undefined
         };
 
         reconciliations.push(reconciliation);
@@ -388,7 +407,7 @@ export class SettlementService {
       await this.fastify.prisma.order.update({
         where: { id: orderId },
         data: {
-          paymentStatus: PaymentStatus.PAID,
+          paymentStatus: PAYMENT_STATUS.PAID,
           paidAt: new Date()
         }
       });
@@ -411,21 +430,19 @@ export class SettlementService {
   }
 
   /**
-   * Get pending cash collections for a company
+   * Get pending cash collections for a company (or all companies if companyId is null)
    */
-  async getPendingCashCollections(companyId: string): Promise<any[]> {
+  async getPendingCashCollections(companyId: string | null): Promise<any[]> {
     try {
       const pendingOrders = await this.fastify.prisma.order.findMany({
         where: {
-          items: {
-            some: {
-              product: { companyId }
-            }
-          },
+          // Filter by company if provided - Order has direct companyId field
+          ...(companyId && { companyId }),
           paymentMethod: 'CASH_ON_DELIVERY',
           status: OrderStatus.DELIVERED,
+          // paymentStatus is a String field, not enum
           paymentStatus: {
-            not: PaymentStatus.PAID
+            not: 'paid'
           }
         },
         include: {
@@ -433,19 +450,34 @@ export class SettlementService {
             select: {
               id: true,
               name: true,
-              phone: true,
-              address: true
+              phone: true
+            }
+          },
+          // Order has its own address relation
+          address: {
+            select: {
+              id: true,
+              name: true,
+              street: true,
+              area: true,
+              zone: true,
+              phone: true
+            }
+          },
+          company: {
+            select: {
+              id: true,
+              nameEn: true,
+              nameAr: true
             }
           },
           items: {
-            where: {
-              product: { companyId }
-            },
             include: {
               product: {
                 select: {
                   id: true,
-                  name: true,
+                  nameEn: true,
+                  nameAr: true,
                   price: true
                 }
               }
@@ -466,6 +498,7 @@ export class SettlementService {
           Math.floor((new Date().getTime() - order.deliveredAt.getTime()) / (1000 * 60 * 60 * 24)) : 0
       }));
     } catch (error) {
+      this.fastify.log.error(error, 'Error getting pending cash collections');
       throw this.fastify.httpErrors.internalServerError('Failed to get pending cash collections');
     }
   }
@@ -527,15 +560,15 @@ export class SettlementService {
   }
 
   /**
-   * Get settlement history
+   * Get settlement history (for a company or all companies if companyId is null)
    */
   async getSettlementHistory(
-    companyId: string,
+    companyId: string | null,
     limit: number = 10
   ): Promise<Settlement[]> {
     try {
       // In production, fetch from database
-      // For now, return empty array
+      // For now, return empty array (settlement table doesn't exist yet)
       return [];
     } catch (error) {
       throw this.fastify.httpErrors.internalServerError('Failed to get settlement history');

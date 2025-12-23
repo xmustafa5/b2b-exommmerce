@@ -110,9 +110,10 @@ export default function PromotionsPage() {
     const searchLower = search.toLowerCase();
     return promotions.filter(
       (promo) =>
-        promo.name.toLowerCase().includes(searchLower) ||
-        promo.code.toLowerCase().includes(searchLower) ||
-        promo.description?.toLowerCase().includes(searchLower)
+        promo.nameEn?.toLowerCase().includes(searchLower) ||
+        promo.nameAr?.toLowerCase().includes(searchLower) ||
+        promo.descriptionEn?.toLowerCase().includes(searchLower) ||
+        promo.descriptionAr?.toLowerCase().includes(searchLower)
     );
   }, [promotions, search]);
 
@@ -252,7 +253,7 @@ export default function PromotionsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Promotion</TableHead>
-                    <TableHead>Code</TableHead>
+                    <TableHead>Created</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Value</TableHead>
                     <TableHead>Duration</TableHead>
@@ -270,19 +271,19 @@ export default function PromotionsPage() {
                             {getPromotionTypeIcon(promotion.type)}
                           </div>
                           <div>
-                            <p className="font-medium">{promotion.name}</p>
-                            {promotion.description && (
+                            <p className="font-medium">{promotion.nameEn}</p>
+                            {promotion.descriptionEn && (
                               <p className="text-sm text-muted-foreground line-clamp-1">
-                                {promotion.description}
+                                {promotion.descriptionEn}
                               </p>
                             )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <code className="rounded bg-muted px-2 py-1 text-sm">
-                          {promotion.code}
-                        </code>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(promotion.createdAt), "MMM d")}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">

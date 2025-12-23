@@ -18,7 +18,6 @@ interface CreatePromotionInput {
   endDate: Date;
   zones: Zone[];
   productIds?: string[];
-  categoryIds?: string[];
   isActive?: boolean;
 }
 
@@ -30,7 +29,7 @@ export class PromotionService {
   }
 
   async createPromotion(data: CreatePromotionInput) {
-    const { productIds, categoryIds, ...promotionData } = data;
+    const { productIds, ...promotionData } = data;
 
     // Validate dates
     if (new Date(data.startDate) >= new Date(data.endDate)) {
@@ -52,7 +51,6 @@ export class PromotionService {
       },
       include: {
         products: true,
-        categories: true,
       },
     });
 
@@ -74,9 +72,6 @@ export class PromotionService {
         products: productIds ? {
           create: productIds.map(productId => ({ productId })),
         } : undefined,
-        categories: categoryIds ? {
-          create: categoryIds.map(categoryId => ({ categoryId })),
-        } : undefined,
       },
       include: {
         products: {
@@ -88,18 +83,6 @@ export class PromotionService {
                 nameAr: true,
                 sku: true,
                 price: true,
-              },
-            },
-          },
-        },
-        categories: {
-          include: {
-            category: {
-              select: {
-                id: true,
-                nameEn: true,
-                nameAr: true,
-                slug: true,
               },
             },
           },
@@ -135,18 +118,6 @@ export class PromotionService {
             },
           },
         },
-        categories: {
-          include: {
-            category: {
-              select: {
-                id: true,
-                nameEn: true,
-                nameAr: true,
-                slug: true,
-              },
-            },
-          },
-        },
       },
     });
 
@@ -162,11 +133,6 @@ export class PromotionService {
             product: true,
           },
         },
-        categories: {
-          include: {
-            category: true,
-          },
-        },
       },
     });
 
@@ -178,7 +144,7 @@ export class PromotionService {
   }
 
   async updatePromotion(id: string, data: Partial<CreatePromotionInput>) {
-    const { productIds, categoryIds, ...updateData } = data;
+    const { productIds, ...updateData } = data;
 
     // If updating dates, validate them
     if (data.startDate && data.endDate) {
@@ -195,10 +161,6 @@ export class PromotionService {
           deleteMany: {},
           create: productIds.map(productId => ({ productId })),
         } : undefined,
-        categories: categoryIds ? {
-          deleteMany: {},
-          create: categoryIds.map(categoryId => ({ categoryId })),
-        } : undefined,
       },
       include: {
         products: {
@@ -210,18 +172,6 @@ export class PromotionService {
                 nameAr: true,
                 sku: true,
                 price: true,
-              },
-            },
-          },
-        },
-        categories: {
-          include: {
-            category: {
-              select: {
-                id: true,
-                nameEn: true,
-                nameAr: true,
-                slug: true,
               },
             },
           },
@@ -267,24 +217,9 @@ export class PromotionService {
         isActive: true,
         startDate: { lte: now },
         endDate: { gte: now },
-        OR: [
-          {
-            products: {
-              some: { productId },
-            },
-          },
-          {
-            categories: {
-              some: {
-                category: {
-                  products: {
-                    some: { id: productId },
-                  },
-                },
-              },
-            },
-          },
-        ],
+        products: {
+          some: { productId },
+        },
       },
       include: {
         products: true,

@@ -88,7 +88,7 @@ export const deliveriesApi = {
   // Get available drivers
   getAvailableDrivers: async (): Promise<DeliveryDriver[]> => {
     const response = await apiClient.get<DeliveryDriver[]>(
-      "/deliveries/drivers/available"
+      "/delivery/drivers/available"
     );
     return response.data;
   },
@@ -96,7 +96,7 @@ export const deliveriesApi = {
   // Get all drivers
   getAllDrivers: async (): Promise<DeliveryDriver[]> => {
     const response = await apiClient.get<DeliveryDriver[]>(
-      "/deliveries/drivers"
+      "/delivery/drivers"
     );
     return response.data;
   },

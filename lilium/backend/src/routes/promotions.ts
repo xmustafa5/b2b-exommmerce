@@ -29,23 +29,6 @@ const promotionProductSchema = {
   }
 };
 
-const promotionCategorySchema = {
-  type: 'object',
-  properties: {
-    categoryId: { type: 'string' },
-    promotionId: { type: 'string' },
-    category: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        nameEn: { type: 'string' },
-        nameAr: { type: 'string' },
-        slug: { type: 'string' }
-      }
-    }
-  }
-};
-
 const promotionResponseSchema = {
   type: 'object',
   properties: {
@@ -68,8 +51,7 @@ const promotionResponseSchema = {
     usageCount: { type: 'integer' },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
-    products: { type: 'array', items: promotionProductSchema },
-    categories: { type: 'array', items: promotionCategorySchema }
+    products: { type: 'array', items: promotionProductSchema }
   }
 };
 
@@ -293,11 +275,6 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
             items: { type: 'string' },
             description: 'Array of product IDs this promotion applies to'
           },
-          categoryIds: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Array of category IDs this promotion applies to'
-          },
           isActive: {
             type: 'boolean',
             default: true,
@@ -437,11 +414,6 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
             type: 'array',
             items: { type: 'string' },
             description: 'Array of product IDs this promotion applies to (replaces existing products)'
-          },
-          categoryIds: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Array of category IDs this promotion applies to (replaces existing categories)'
           },
           isActive: {
             type: 'boolean',
