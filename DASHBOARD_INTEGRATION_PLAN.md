@@ -57,16 +57,16 @@
 ### Phase 2: Medium Priority Features
 
 #### 2.1 User Management
-- [ ] Create `types/user.ts` with all interfaces
-- [ ] Add usersQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/users.ts` API module
-- [ ] Create `hooks/useUsers.ts` custom hooks
-- [ ] Create `dashboard/users/_components/user-create-dialog.tsx`
-- [ ] Create `dashboard/users/_components/user-edit-dialog.tsx`
-- [ ] Create `dashboard/users/_components/user-delete-dialog.tsx`
-- [ ] Create `dashboard/users/_components/zone-assignment-dialog.tsx`
-- [ ] Create `dashboard/users/page.tsx` main page
-- [ ] Create `dashboard/users/admins/page.tsx` admins page
+- [x] Create `types/user.ts` with all interfaces
+- [x] Add usersQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/users.ts` API module
+- [x] Create `hooks/useUsers.ts` custom hooks
+- [x] Create `dashboard/users/_components/admin-create-dialog.tsx`
+- [x] Create `dashboard/users/_components/admin-edit-dialog.tsx`
+- [x] Create `dashboard/users/_components/admin-delete-dialog.tsx`
+- [x] Create `dashboard/users/_components/zone-assignment-dialog.tsx`
+- [x] Create `dashboard/users/_components/reset-password-dialog.tsx`
+- [x] Create `dashboard/users/page.tsx` main page (with Admins & Shop Owners tabs)
 - [ ] Test user CRUD operations
 - [ ] Test admin zone assignment
 

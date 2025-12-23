@@ -78,6 +78,14 @@ export const usersQueryKeys = {
   detail: (id: string) => ["users", "detail", id] as const,
 };
 
+export const adminsQueryKeys = {
+  all: ["admins"] as const,
+  list: (...args: any[]) => ["admins", "list", ...args] as const,
+  detail: (id: string) => ["admins", "detail", id] as const,
+  stats: () => ["admins", "stats"] as const,
+  shopOwners: (...args: any[]) => ["admins", "shopOwners", ...args] as const,
+};
+
 export const deliveriesQueryKeys = {
   all: ["deliveries"] as const,
   list: (...args: any[]) => ["deliveries", "list", ...args] as const,
