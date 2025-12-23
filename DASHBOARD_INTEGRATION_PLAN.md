@@ -71,13 +71,13 @@
 - [ ] Test admin zone assignment
 
 #### 2.2 Notifications Management
-- [ ] Create `types/notification.ts` with interfaces
-- [ ] Add notificationsQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/notifications.ts` API module
-- [ ] Create `hooks/useNotifications.ts` custom hooks
-- [ ] Create `dashboard/notifications/_components/send-notification-dialog.tsx`
-- [ ] Create `dashboard/notifications/_components/notification-history-table.tsx`
-- [ ] Create `dashboard/notifications/page.tsx` main page
+- [x] Create `types/notification.ts` with interfaces
+- [x] Add notificationsQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/notifications.ts` API module
+- [x] Create `hooks/useNotifications.ts` custom hooks
+- [x] Create `dashboard/notifications/_components/send-notification-dialog.tsx`
+- [x] Create `dashboard/notifications/page.tsx` main page
+- [x] Add Notifications link to sidebar
 - [ ] Test send to user
 - [ ] Test send to zone
 - [ ] Test broadcast to admins

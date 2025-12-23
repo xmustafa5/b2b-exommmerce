@@ -86,6 +86,12 @@ export const adminsQueryKeys = {
   shopOwners: (...args: any[]) => ["admins", "shopOwners", ...args] as const,
 };
 
+export const notificationsQueryKeys = {
+  all: ["notifications"] as const,
+  status: () => ["notifications", "status"] as const,
+  history: (...args: any[]) => ["notifications", "history", ...args] as const,
+};
+
 export const deliveriesQueryKeys = {
   all: ["deliveries"] as const,
   list: (...args: any[]) => ["deliveries", "list", ...args] as const,

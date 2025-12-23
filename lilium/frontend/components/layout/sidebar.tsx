@@ -15,6 +15,7 @@ import {
   Users,
   Truck,
   DollarSign,
+  Bell,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
   { name: "Shops", href: "/dashboard/shops", icon: Store },
   { name: "Users", href: "/dashboard/users", icon: Users },
+  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { name: "Deliveries", href: "/dashboard/deliveries", icon: Truck },
   { name: "Settlements", href: "/dashboard/settlements", icon: DollarSign },
 ];
