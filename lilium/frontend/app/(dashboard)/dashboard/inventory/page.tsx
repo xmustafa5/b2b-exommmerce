@@ -10,6 +10,8 @@ import {
   History,
   Pencil,
   Boxes,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,8 @@ import {
   useOutOfStockProducts,
   useInventoryReport,
 } from "@/hooks/useInventory";
+import { exportApi } from "@/actions/export";
+import { useToast } from "@/hooks/use-toast";
 import type { LowStockProduct, InventoryFilters } from "@/types/inventory";
 import { StockUpdateDialog } from "./_components/stock-update-dialog";
 import { BulkUpdateDialog } from "./_components/bulk-update-dialog";
@@ -50,10 +54,12 @@ import { StockHistoryTable } from "./_components/stock-history-table";
 import { RestockSuggestionsCard } from "./_components/restock-suggestions-card";
 
 export default function InventoryPage() {
+  const { toast } = useToast();
   const [filters, setFilters] = useState<InventoryFilters>({});
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("low-stock");
   const [selectedProducts, setSelectedProducts] = useState<LowStockProduct[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Dialogs
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
@@ -69,6 +75,25 @@ export default function InventoryPage() {
   const { data: report, isLoading: isLoadingReport } = useInventoryReport(
     filters.zone
   );
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      await exportApi.inventoryPDF();
+      toast({
+        title: "Success",
+        description: "Inventory report exported successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to export inventory report",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Filter products by search
   const filteredLowStock = useMemo(() => {
@@ -243,6 +268,19 @@ export default function InventoryPage() {
                     <SelectItem value="RUSAFA">RUSAFA</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Button
+                  variant="outline"
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Export PDF
+                </Button>
 
                 {selectedProducts.length > 0 && (
                   <Button onClick={() => setBulkUpdateDialogOpen(true)}>

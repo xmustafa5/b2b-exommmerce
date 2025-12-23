@@ -9,6 +9,8 @@ import {
   Trash2,
   Package,
   ArrowUpDown,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProducts } from "@/hooks/useProducts";
+import { exportApi } from "@/actions/export";
+import { useToast } from "@/hooks/use-toast";
 import type { Product, ProductFilters } from "@/types/product";
 import { ProductCreateDialog } from "./_components/product-create-dialog";
 import { ProductEditDialog } from "./_components/product-edit-dialog";
@@ -43,11 +47,13 @@ import { ProductDeleteDialog } from "./_components/product-delete-dialog";
 import { ProductStockDialog } from "./_components/product-stock-dialog";
 
 export default function ProductsPage() {
+  const { toast } = useToast();
   const [filters, setFilters] = useState<ProductFilters>({
     page: 1,
     limit: 50,
   });
   const [search, setSearch] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,6 +63,28 @@ export default function ProductsPage() {
   const [stockProduct, setStockProduct] = useState<Product | null>(null);
 
   const { data, isLoading } = useProducts(filters);
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      await exportApi.productsCSV({
+        categoryId: filters.categoryId,
+        inStock: filters.inStock,
+      });
+      toast({
+        title: "Success",
+        description: "Products exported successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to export products",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Filter products by search term
   const filteredProducts = useMemo(() => {
@@ -157,6 +185,19 @@ export default function ProductsPage() {
                 <SelectItem value="RUSAFA">Rusafa</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Export CSV
+            </Button>
 
             <Button onClick={handleOpenCreate}>
               <Plus className="mr-2 h-4 w-4" />

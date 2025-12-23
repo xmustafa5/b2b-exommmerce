@@ -98,6 +98,14 @@ export const deliveriesQueryKeys = {
   detail: (id: string) => ["deliveries", "detail", id] as const,
   byDriver: (driverId: string) =>
     ["deliveries", "byDriver", driverId] as const,
+  byStatus: (status: string, companyId?: string) =>
+    ["deliveries", "byStatus", status, companyId] as const,
+  active: (companyId?: string) =>
+    ["deliveries", "active", companyId] as const,
+  metrics: (period?: string, companyId?: string) =>
+    ["deliveries", "metrics", period, companyId] as const,
+  tracking: (orderId: string) =>
+    ["deliveries", "tracking", orderId] as const,
 };
 
 export const driversQueryKeys = {
@@ -113,6 +121,16 @@ export const settlementsQueryKeys = {
   detail: (id: string) => ["settlements", "detail", id] as const,
   byVendor: (vendorId: string) =>
     ["settlements", "byVendor", vendorId] as const,
+  summary: (companyId?: string, startDate?: string, endDate?: string) =>
+    ["settlements", "summary", companyId, startDate, endDate] as const,
+  history: (companyId?: string, limit?: number) =>
+    ["settlements", "history", companyId, limit] as const,
+  pendingCash: (companyId?: string) =>
+    ["settlements", "pendingCash", companyId] as const,
+  platformEarnings: (startDate: string, endDate: string) =>
+    ["settlements", "platformEarnings", startDate, endDate] as const,
+  cashFlow: (companyId?: string, startDate?: string, endDate?: string) =>
+    ["settlements", "cashFlow", companyId, startDate, endDate] as const,
 };
 
 export const dashboardQueryKeys = {
@@ -155,4 +173,15 @@ export const analyticsQueryKeys = {
     ["analytics", "notifyRequests", startDate, endDate] as const,
   vendorDashboard: () => ["analytics", "vendorDashboard"] as const,
   adminDashboard: () => ["analytics", "adminDashboard"] as const,
+};
+
+export const payoutsQueryKeys = {
+  all: ["payouts"] as const,
+  list: (...args: any[]) => ["payouts", "list", ...args] as const,
+  detail: (id: string) => ["payouts", "detail", id] as const,
+  balance: (companyId?: string) => ["payouts", "balance", companyId] as const,
+  summary: (companyId?: string) => ["payouts", "summary", companyId] as const,
+  pending: () => ["payouts", "pending"] as const,
+  report: (companyId: string, startDate: string, endDate: string) =>
+    ["payouts", "report", companyId, startDate, endDate] as const,
 };

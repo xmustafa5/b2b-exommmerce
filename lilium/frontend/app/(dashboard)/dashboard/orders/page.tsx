@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, MoreHorizontal, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Download, Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/select";
 import { useOrders, useConfirmOrder, useCancelOrder } from "@/hooks/useOrders";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { exportApi } from "@/actions/export";
+import { useToast } from "@/hooks/use-toast";
 import type { OrderFilters, OrderStatus } from "@/types/order";
 
 const statusColors: Record<OrderStatus, string> = {
@@ -56,14 +58,37 @@ const statusLabels: Record<OrderStatus, string> = {
 };
 
 export default function OrdersPage() {
+  const { toast } = useToast();
   const [filters, setFilters] = useState<OrderFilters>({
     page: 1,
     limit: 10,
   });
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading } = useOrders(filters);
   const confirmMutation = useConfirmOrder();
   const cancelMutation = useCancelOrder();
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      await exportApi.ordersCSV({
+        status: filters.status,
+      });
+      toast({
+        title: "Success",
+        description: "Orders exported successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to export orders",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleConfirm = (id: string) => {
     confirmMutation.mutate(id);
@@ -137,6 +162,19 @@ export default function OrdersPage() {
                 <SelectItem value="PAID">Paid</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Export CSV
+            </Button>
           </div>
         </div>
 

@@ -18,6 +18,7 @@ import {
   Bell,
   Settings,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const navigation = [
   { name: "Users", href: "/dashboard/users", icon: Users },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { name: "Deliveries", href: "/dashboard/deliveries", icon: Truck },
+  { name: "Payouts", href: "/dashboard/payouts", icon: Wallet },
   { name: "Settlements", href: "/dashboard/settlements", icon: DollarSign },
 ];
 

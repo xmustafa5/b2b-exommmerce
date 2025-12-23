@@ -83,10 +83,10 @@
 - [ ] Test broadcast to admins
 
 #### 2.3 Export Functionality
-- [ ] Create `actions/export.ts` API module
-- [ ] Add export button to Orders page
-- [ ] Add export button to Products page
-- [ ] Add export button to Inventory page
+- [x] Create `actions/export.ts` API module
+- [x] Add export button to Orders page
+- [x] Add export button to Products page
+- [x] Add export button to Inventory page
 - [ ] Test CSV export (orders)
 - [ ] Test CSV export (products)
 - [ ] Test CSV export (customers)
@@ -94,38 +94,38 @@
 - [ ] Test PDF export (inventory report)
 
 #### 2.4 Payouts Management
-- [ ] Create `types/payout.ts` with interfaces
-- [ ] Add payoutsQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/payouts.ts` API module
-- [ ] Create `hooks/usePayouts.ts` custom hooks
-- [ ] Create `dashboard/payouts/_components/payout-create-dialog.tsx`
-- [ ] Create `dashboard/payouts/_components/payout-status-dialog.tsx`
-- [ ] Create `dashboard/payouts/page.tsx` main page
+- [x] Create `types/payout.ts` with interfaces
+- [x] Add payoutsQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/payouts.ts` API module
+- [x] Create `hooks/usePayouts.ts` custom hooks
+- [x] Create `dashboard/payouts/_components/payout-status-dialog.tsx`
+- [x] Create `dashboard/payouts/_components/payout-cancel-dialog.tsx`
+- [x] Create `dashboard/payouts/page.tsx` main page
 - [ ] Test payout creation
 - [ ] Test status updates
 
 #### 2.5 Settlements Management
-- [ ] Create `types/settlement.ts` with interfaces
-- [ ] Add settlementsQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/settlements.ts` API module
-- [ ] Create `hooks/useSettlements.ts` custom hooks
-- [ ] Create `dashboard/settlements/_components/settlement-create-dialog.tsx`
-- [ ] Create `dashboard/settlements/_components/settlement-status-dialog.tsx`
-- [ ] Create `dashboard/settlements/page.tsx` main page
+- [x] Create `types/settlement.ts` with interfaces
+- [x] Add settlementsQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/settlements.ts` API module
+- [x] Create `hooks/useSettlements.ts` custom hooks
+- [x] Create `dashboard/settlements/_components/verify-settlement-dialog.tsx`
+- [x] Create `dashboard/settlements/_components/cash-collection-dialog.tsx`
+- [x] Create `dashboard/settlements/page.tsx` main page
 - [ ] Test settlement creation
 - [ ] Test status updates
 
 #### 2.6 Delivery Routes
-- [ ] Create `types/delivery.ts` with interfaces
-- [ ] Add deliveryQueryKeys to `constants/queryKeys.ts`
-- [ ] Create `actions/delivery.ts` API module
-- [ ] Create `hooks/useDelivery.ts` custom hooks
-- [ ] Create `dashboard/delivery/_components/route-create-dialog.tsx`
-- [ ] Create `dashboard/delivery/_components/route-edit-dialog.tsx`
-- [ ] Create `dashboard/delivery/_components/order-assignment-dialog.tsx`
-- [ ] Create `dashboard/delivery/page.tsx` main page
-- [ ] Test route CRUD
-- [ ] Test order assignment
+- [x] Create `types/delivery.ts` with interfaces
+- [x] Add deliveryQueryKeys to `constants/queryKeys.ts`
+- [x] Create `actions/deliveries.ts` API module
+- [x] Create `hooks/useDelivery.ts` custom hooks
+- [x] Create `dashboard/deliveries/_components/update-status-dialog.tsx`
+- [x] Create `dashboard/deliveries/_components/cash-collection-dialog.tsx`
+- [x] Create `dashboard/deliveries/_components/assign-driver-dialog.tsx`
+- [x] Create `dashboard/deliveries/page.tsx` main page
+- [ ] Test order status updates
+- [ ] Test driver assignment
 
 ### Phase 3: Low Priority Features
 
