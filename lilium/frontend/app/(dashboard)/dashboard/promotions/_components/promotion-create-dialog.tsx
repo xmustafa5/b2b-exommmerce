@@ -134,7 +134,7 @@ export function PromotionCreateDialog({
         endDate: new Date(`${data.endDate}T23:59:59`).toISOString(),
         minPurchase: data.minPurchase || undefined,
         maxDiscount: data.maxDiscount || undefined,
-        zones: data.zones?.length ? data.zones : undefined,
+        zones: data.zones || [], // Empty array means all zones
         buyQuantity: data.buyQuantity || undefined,
         getQuantity: data.getQuantity || undefined,
         bundlePrice: data.bundlePrice || undefined,

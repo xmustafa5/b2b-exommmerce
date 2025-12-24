@@ -195,7 +195,7 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
       security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
-        required: ['nameEn', 'nameAr', 'type', 'value', 'startDate', 'endDate', 'zones'],
+        required: ['nameEn', 'nameAr', 'type', 'value', 'startDate', 'endDate'],
         properties: {
           nameEn: {
             type: 'string',
@@ -267,8 +267,8 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
               type: 'string',
               enum: ['KARKH', 'RUSAFA']
             },
-            minItems: 1,
-            description: 'Zones where this promotion is applicable'
+            default: [],
+            description: 'Zones where this promotion is applicable. Empty array means all zones.'
           },
           productIds: {
             type: 'array',

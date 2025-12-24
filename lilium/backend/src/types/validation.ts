@@ -141,7 +141,7 @@ export const categoryQuerySchema = paginationSchema.extend({
 export const createCategorySchema = z.object({
   nameAr: z.string().min(1, 'Arabic name is required').max(100, 'Arabic name must be less than 100 characters'),
   nameEn: z.string().min(1, 'English name is required').max(100, 'English name must be less than 100 characters'),
-  slug: z.string().min(1, 'Slug is required').max(100).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
+  slug: z.string().max(100).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only').optional(),
   description: z.string().max(500).optional(),
   image: z.string().url('Invalid image URL').optional().nullable(),
   parentId: z.string().optional().nullable(),
@@ -239,7 +239,7 @@ export const createPromotionSchema = z.object({
   bundleProductIds: z.array(z.string()).optional(), // For bundle: Products included in bundle
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  zones: z.array(z.nativeEnum(Zone)).min(1, 'At least one zone is required'),
+  zones: z.array(z.nativeEnum(Zone)).optional().default([]), // Empty array means all zones
   isActive: z.boolean().default(true),
   usageLimit: z.number().int().positive().optional(),
   productIds: z.array(z.string()).optional(),

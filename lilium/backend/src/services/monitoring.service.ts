@@ -405,6 +405,23 @@ export async function metricsPlugin(fastify: FastifyInstance) {
             pid: { type: 'integer' },
             uptime: { type: 'number' },
             env: { type: 'string' },
+            memoryUsage: {
+              type: 'object',
+              properties: {
+                heapUsed: { type: 'number' },
+                heapTotal: { type: 'number' },
+                external: { type: 'number' },
+                rss: { type: 'number' },
+                arrayBuffers: { type: 'number' },
+              },
+            },
+            cpuUsage: {
+              type: 'object',
+              properties: {
+                user: { type: 'number' },
+                system: { type: 'number' },
+              },
+            },
           },
         },
       },

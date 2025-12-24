@@ -40,7 +40,7 @@ export function SystemInfoCard({ system, isLoading }: SystemInfoCardProps) {
           <div className="flex h-48 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
-        ) : !system ? (
+        ) : !system || !system.memoryUsage || !system.cpuUsage ? (
           <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
             <p>System info unavailable</p>
           </div>
