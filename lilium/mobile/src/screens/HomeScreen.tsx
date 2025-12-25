@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,8 @@ import {
   TextInput,
   Image,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
-import { productsApi } from '../services/api';
+import { useProducts, usePrefetchProduct } from '../hooks';
 import { Product } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
@@ -23,22 +22,32 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const user = useAuthStore((state) => state.user);
+  const prefetchProduct = usePrefetchProduct();
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['products', page, search],
-    queryFn: () =>
-      productsApi.getProducts({
-        page,
-        limit: 20,
-        search: search || undefined,
-        zones: user?.zones,
-      }),
-  });
+  // Use custom hook with memoized filters
+  const filters = useMemo(() => ({
+    page,
+    limit: 20,
+    search: search || undefined,
+    zones: user?.zones,
+  }), [page, search, user?.zones]);
+
+  const { data, isLoading, refetch, isFetching } = useProducts(filters);
+
+  const handleProductPress = (productId: string) => {
+    navigation.navigate('ProductDetail', { productId });
+  };
+
+  const handleProductPressIn = (productId: string) => {
+    // Prefetch product data on press in for faster navigation
+    prefetchProduct(productId);
+  };
 
   const renderProduct = ({ item }: { item: Product }) => (
     <TouchableOpacity
       style={styles.productCard}
-      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+      onPress={() => handleProductPress(item.id)}
+      onPressIn={() => handleProductPressIn(item.id)}
     >
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.productImage} />

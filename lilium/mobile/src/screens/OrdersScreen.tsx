@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,18 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Order, OrderStatus } from '../types';
-import { ordersApi } from '../services/api';
+import { useOrders, usePrefetchOrder } from '../hooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Orders'>;
 
 export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['orders'],
-    queryFn: () => ordersApi.getOrders({ page: 1, limit: 50 }),
-  });
+  const prefetchOrder = usePrefetchOrder();
+
+  // Use custom hook with memoized filters
+  const filters = useMemo(() => ({ page: 1, limit: 50 }), []);
+  const { data, isLoading, refetch, isFetching } = useOrders(filters);
 
   const getStatusColor = (status: OrderStatus): string => {
     switch (status) {
@@ -49,6 +49,15 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
+  const handleOrderPress = (orderId: string) => {
+    navigation.navigate('OrderDetail', { orderId });
+  };
+
+  const handleOrderPressIn = (orderId: string) => {
+    // Prefetch order data for faster navigation
+    prefetchOrder(orderId);
+  };
+
   const renderOrder = ({ item }: { item: Order }) => {
     const itemCount = item.items.reduce((total, orderItem) => total + orderItem.quantity, 0);
     const statusColor = getStatusColor(item.status);
@@ -56,7 +65,8 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={styles.orderCard}
-        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+        onPress={() => handleOrderPress(item.id)}
+        onPressIn={() => handleOrderPressIn(item.id)}
       >
         <View style={styles.orderHeader}>
           <View>

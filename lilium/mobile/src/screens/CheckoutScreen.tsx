@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,39 +9,33 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useMutation } from '@tanstack/react-query';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { useCart } from '../contexts/CartContext';
-import { ordersApi } from '../services/api';
+import { useCreateOrder } from '../hooks';
+import { checkoutSchema, CheckoutFormData } from '../schemas';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
 export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
   const { items, subtotal, clearCart } = useCart();
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  const createOrder = useCreateOrder();
 
-  const createOrderMutation = useMutation({
-    mutationFn: ordersApi.createOrder,
-    onSuccess: (order) => {
-      clearCart();
-      navigation.replace('OrderConfirmation', { orderId: order.id });
-    },
-    onError: (error: any) => {
-      Alert.alert(
-        'Order Failed',
-        error.response?.data?.message || 'Failed to create order. Please try again.'
-      );
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CheckoutFormData>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      deliveryAddress: '',
+      notes: '',
     },
   });
 
-  const handlePlaceOrder = () => {
-    if (!deliveryAddress.trim()) {
-      Alert.alert('Missing Information', 'Please enter delivery address');
-      return;
-    }
-
+  const onSubmit = (data: CheckoutFormData) => {
     if (items.length === 0) {
       Alert.alert('Empty Cart', 'Your cart is empty');
       return;
@@ -55,14 +49,28 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
         {
           text: 'Place Order',
           onPress: () => {
-            createOrderMutation.mutate({
-              items: items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-              })),
-              deliveryAddress: deliveryAddress.trim(),
-              notes: notes.trim() || undefined,
-            });
+            createOrder.mutate(
+              {
+                items: items.map((item) => ({
+                  productId: item.productId,
+                  quantity: item.quantity,
+                })),
+                deliveryAddress: data.deliveryAddress.trim(),
+                notes: data.notes?.trim() || undefined,
+              },
+              {
+                onSuccess: (order) => {
+                  clearCart();
+                  navigation.replace('OrderConfirmation', { orderId: order.id });
+                },
+                onError: (error: any) => {
+                  Alert.alert(
+                    'Order Failed',
+                    error.response?.data?.message || 'Failed to create order. Please try again.'
+                  );
+                },
+              }
+            );
           },
         },
       ]
@@ -91,29 +99,52 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
         {/* Delivery Address */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
-          <TextInput
-            style={styles.addressInput}
-            placeholder="Enter your delivery address"
-            value={deliveryAddress}
-            onChangeText={setDeliveryAddress}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
+          <Controller
+            control={control}
+            name="deliveryAddress"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[
+                  styles.addressInput,
+                  errors.deliveryAddress && styles.inputError,
+                ]}
+                placeholder="Enter your delivery address"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            )}
           />
+          {errors.deliveryAddress && (
+            <Text style={styles.errorText}>{errors.deliveryAddress.message}</Text>
+          )}
         </View>
 
         {/* Order Notes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Notes (Optional)</Text>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Any special instructions..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
+          <Controller
+            control={control}
+            name="notes"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.notesInput, errors.notes && styles.inputError]}
+                placeholder="Any special instructions..."
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            )}
           />
+          {errors.notes && (
+            <Text style={styles.errorText}>{errors.notes.message}</Text>
+          )}
         </View>
 
         {/* Total */}
@@ -142,12 +173,12 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.placeOrderButton,
-            createOrderMutation.isPending && styles.disabledButton,
+            createOrder.isPending && styles.disabledButton,
           ]}
-          onPress={handlePlaceOrder}
-          disabled={createOrderMutation.isPending}
+          onPress={handleSubmit(onSubmit)}
+          disabled={createOrder.isPending}
         >
-          {createOrderMutation.isPending ? (
+          {createOrder.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.placeOrderText}>Place Order</Text>
@@ -216,6 +247,14 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     minHeight: 80,
+  },
+  inputError: {
+    borderColor: '#ff3b30',
+  },
+  errorText: {
+    color: '#ff3b30',
+    fontSize: 12,
+    marginTop: 4,
   },
   totalRow: {
     flexDirection: 'row',
