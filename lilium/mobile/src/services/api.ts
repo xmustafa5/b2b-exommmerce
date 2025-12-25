@@ -14,6 +14,8 @@ import {
   QuickStockCheck,
   Promotion,
   Category,
+  Address,
+  AddressCreateInput,
 } from '../types';
 
 // API Base URL - Change this to your backend URL
@@ -225,13 +227,45 @@ export const promotionsApi = {
 
 // Categories API
 export const categoriesApi = {
-  getAll: async (): Promise<Category[]> => {
-    const response = await api.get('/categories');
+  getAll: async (filters?: { isActive?: boolean }): Promise<Category[]> => {
+    const response = await api.get('/categories', { params: filters });
     return response.data.data || response.data;
   },
 
   getById: async (id: string): Promise<Category> => {
     const response = await api.get(`/categories/${id}`);
+    return response.data;
+  },
+};
+
+// Addresses API
+export const addressesApi = {
+  getAll: async (): Promise<Address[]> => {
+    const response = await api.get('/addresses');
+    return response.data.data || response.data;
+  },
+
+  getById: async (id: string): Promise<Address> => {
+    const response = await api.get(`/addresses/${id}`);
+    return response.data;
+  },
+
+  create: async (data: AddressCreateInput): Promise<Address> => {
+    const response = await api.post('/addresses', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<AddressCreateInput>): Promise<Address> => {
+    const response = await api.put(`/addresses/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/addresses/${id}`);
+  },
+
+  setDefault: async (id: string): Promise<Address> => {
+    const response = await api.patch(`/addresses/${id}/default`);
     return response.data;
   },
 };

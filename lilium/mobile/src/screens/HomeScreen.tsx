@@ -15,14 +15,32 @@ import { useProducts, usePrefetchProduct } from '../hooks';
 import { Product } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
+import { FilterModal, FilterState } from '../components/FilterModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const DEFAULT_FILTERS: FilterState = {
+  categoryId: undefined,
+  sortBy: 'newest',
+  inStockOnly: false,
+};
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const user = useAuthStore((state) => state.user);
   const prefetchProduct = usePrefetchProduct();
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (advancedFilters.categoryId) count++;
+    if (advancedFilters.sortBy !== 'newest') count++;
+    if (advancedFilters.inStockOnly) count++;
+    return count;
+  }, [advancedFilters]);
 
   // Use custom hook with memoized filters
   const filters = useMemo(() => ({
@@ -30,9 +48,44 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     limit: 20,
     search: search || undefined,
     zones: user?.zones,
-  }), [page, search, user?.zones]);
+    categoryId: advancedFilters.categoryId,
+  }), [page, search, user?.zones, advancedFilters.categoryId]);
 
   const { data, isLoading, refetch, isFetching } = useProducts(filters);
+
+  // Apply client-side sorting and in-stock filter
+  const sortedProducts = useMemo(() => {
+    if (!data?.products) return [];
+
+    let products = [...data.products];
+
+    // Apply in-stock filter
+    if (advancedFilters.inStockOnly) {
+      products = products.filter((p) => p.stock > 0);
+    }
+
+    // Apply sorting
+    switch (advancedFilters.sortBy) {
+      case 'price_low':
+        products.sort((a, b) => a.price - b.price);
+        break;
+      case 'price_high':
+        products.sort((a, b) => b.price - a.price);
+        break;
+      case 'name_asc':
+        products.sort((a, b) => a.nameEn.localeCompare(b.nameEn));
+        break;
+      case 'name_desc':
+        products.sort((a, b) => b.nameEn.localeCompare(a.nameEn));
+        break;
+      case 'newest':
+      default:
+        // Already sorted by newest from API
+        break;
+    }
+
+    return products;
+  }, [data?.products, advancedFilters.sortBy, advancedFilters.inStockOnly]);
 
   const handleProductPress = (productId: string) => {
     navigation.navigate('ProductDetail', { productId });
@@ -86,19 +139,32 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Search */}
+      {/* Search and Filter */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search products..."
-          value={search}
-          onChangeText={setSearch}
-        />
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products..."
+            value={search}
+            onChangeText={setSearch}
+          />
+          <TouchableOpacity
+            style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <Text style={styles.filterIcon}>⚙</Text>
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Products List */}
       <FlatList
-        data={data?.products || []}
+        data={sortedProducts}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -121,6 +187,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
       )}
+
+      {/* Filter Modal */}
+      <FilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        currentFilters={advancedFilters}
+        onApply={(newFilters) => {
+          setAdvancedFilters(newFilters);
+          setPage(1); // Reset to first page when filters change
+        }}
+      />
     </View>
   );
 };
@@ -154,7 +231,13 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   searchInput: {
+    flex: 1,
     height: 45,
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
@@ -162,6 +245,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  filterButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  filterIcon: {
+    fontSize: 20,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#ff3b30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   productsList: {
     padding: 8,

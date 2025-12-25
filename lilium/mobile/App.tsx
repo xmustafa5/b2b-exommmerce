@@ -18,6 +18,10 @@ import { OrdersScreen } from './src/screens/OrdersScreen';
 import { OrderDetailScreen } from './src/screens/OrderDetailScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { FavoritesScreen } from './src/screens/FavoritesScreen';
+import { AddressesScreen } from './src/screens/AddressesScreen';
+import { AddAddressScreen } from './src/screens/AddAddressScreen';
+import { EditAddressScreen } from './src/screens/EditAddressScreen';
+import { CategoriesScreen } from './src/screens/CategoriesScreen';
 import type { RootStackParamList } from './src/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -214,6 +218,26 @@ function AppNavigator() {
               name="Favorites"
               component={FavoritesScreen}
               options={{ title: 'My Favorites' }}
+            />
+            <Stack.Screen
+              name="Addresses"
+              component={AddressesScreen}
+              options={{ title: 'My Addresses' }}
+            />
+            <Stack.Screen
+              name="AddAddress"
+              component={AddAddressScreen}
+              options={{ title: 'Add Address' }}
+            />
+            <Stack.Screen
+              name="EditAddress"
+              component={EditAddressScreen}
+              options={{ title: 'Edit Address' }}
+            />
+            <Stack.Screen
+              name="Categories"
+              component={CategoriesScreen}
+              options={{ title: 'Categories' }}
             />
           </>
         )}

@@ -74,3 +74,10 @@ export const promotionsQueryKeys = {
   detail: (id: string) => [...promotionsQueryKeys.all, 'detail', id] as const,
   preview: () => [...promotionsQueryKeys.all, 'preview'] as const,
 };
+
+export const addressesQueryKeys = {
+  all: ['addresses'] as const,
+  list: () => [...addressesQueryKeys.all, 'list'] as const,
+  detail: (id: string) => [...addressesQueryKeys.all, 'detail', id] as const,
+  default: () => [...addressesQueryKeys.all, 'default'] as const,
+};

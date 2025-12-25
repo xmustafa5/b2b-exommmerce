@@ -242,7 +242,7 @@ export interface AddressCreateInput {
 // Navigation types
 export type RootStackParamList = {
   Login: undefined;
-  Home: undefined;
+  Home: { categoryId?: string } | undefined;
   ProductDetail: { productId: string };
   Cart: undefined;
   Checkout: undefined;
@@ -254,6 +254,7 @@ export type RootStackParamList = {
   Addresses: undefined;
   AddAddress: undefined;
   EditAddress: { addressId: string };
+  Categories: undefined;
   NotifyMeList: undefined;
 };
 

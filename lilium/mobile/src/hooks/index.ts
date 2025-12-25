@@ -36,3 +36,21 @@ export {
   usePromotion,
   usePreviewPromotions,
 } from './useCart';
+
+// Address hooks
+export {
+  useAddresses,
+  useAddress,
+  useDefaultAddress,
+  useCreateAddress,
+  useUpdateAddress,
+  useDeleteAddress,
+  useSetDefaultAddress,
+} from './useAddresses';
+
+// Category hooks
+export {
+  useCategories,
+  useCategory,
+  useActiveCategories,
+} from './useCategories';
