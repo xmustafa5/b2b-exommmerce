@@ -17,6 +17,7 @@ import { OrderConfirmationScreen } from './src/screens/OrderConfirmationScreen';
 import { OrdersScreen } from './src/screens/OrdersScreen';
 import { OrderDetailScreen } from './src/screens/OrderDetailScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { FavoritesScreen } from './src/screens/FavoritesScreen';
 import type { RootStackParamList } from './src/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -76,6 +77,17 @@ function MainTabs() {
         }}
       >
         {(props: any) => <HomeScreen {...props} />}
+      </Tab.Screen>
+      <Tab.Screen
+        name="FavoritesTab"
+        options={{
+          tabBarLabel: 'Favorites',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size, color }}>♥</Text>
+          ),
+        }}
+      >
+        {(props: any) => <FavoritesScreen {...props} />}
       </Tab.Screen>
       <Tab.Screen
         name="CartTab"
@@ -197,6 +209,11 @@ function AppNavigator() {
               name="Profile"
               component={ProfileScreen}
               options={{ title: 'Profile' }}
+            />
+            <Stack.Screen
+              name="Favorites"
+              component={FavoritesScreen}
+              options={{ title: 'My Favorites' }}
             />
           </>
         )}

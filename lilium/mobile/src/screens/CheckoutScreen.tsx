@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,9 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, CartValidationResult } from '../types';
 import { useCart } from '../contexts/CartContext';
-import { useCreateOrder } from '../hooks';
+import { useCreateOrder, useValidateCheckout, usePreviewPromotions } from '../hooks';
 import { checkoutSchema, CheckoutFormData } from '../schemas';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
@@ -22,6 +22,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
   const { items, subtotal, clearCart } = useCart();
   const createOrder = useCreateOrder();
+  const validateCheckout = useValidateCheckout();
+  const previewPromotions = usePreviewPromotions();
+
+  const [validationResult, setValidationResult] = useState<CartValidationResult | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const {
     control,
@@ -35,15 +40,60 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
+  // Validate cart when screen loads or items change
+  useEffect(() => {
+    if (items.length > 0) {
+      setIsValidating(true);
+      const cartItems = items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      }));
+
+      validateCheckout.mutate(
+        { items: cartItems },
+        {
+          onSuccess: (result) => {
+            setValidationResult(result);
+            setIsValidating(false);
+
+            // Show warnings if any
+            if (result.warnings.length > 0) {
+              Alert.alert('Warning', result.warnings.join('\n'));
+            }
+          },
+          onError: () => {
+            setIsValidating(false);
+          },
+        }
+      );
+
+      // Also preview promotions
+      previewPromotions.mutate(cartItems);
+    }
+  }, [items.length]);
+
   const onSubmit = (data: CheckoutFormData) => {
     if (items.length === 0) {
       Alert.alert('Empty Cart', 'Your cart is empty');
       return;
     }
 
+    // Check if validation passed
+    if (validationResult && !validationResult.valid) {
+      Alert.alert(
+        'Cannot Place Order',
+        validationResult.errors.join('\n'),
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const finalTotal = validationResult?.summary?.total ?? subtotal;
+    const savings = previewPromotions.data?.totalSavings ?? 0;
+
     Alert.alert(
       'Confirm Order',
-      `Total amount: IQD ${subtotal.toLocaleString()}`,
+      `Total amount: IQD ${finalTotal.toLocaleString()}${savings > 0 ? `\nYou save: IQD ${savings.toLocaleString()}` : ''}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -147,24 +197,78 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
 
+        {/* Promotions Preview */}
+        {previewPromotions.data && previewPromotions.data.applicablePromotions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Applied Promotions</Text>
+            {previewPromotions.data.applicablePromotions.map((promo) => (
+              <View key={promo.id} style={styles.promoRow}>
+                <View style={styles.promoBadge}>
+                  <Text style={styles.promoBadgeText}>{promo.type.toUpperCase()}</Text>
+                </View>
+                <Text style={styles.promoName}>{promo.name}</Text>
+              </View>
+            ))}
+            <View style={styles.savingsRow}>
+              <Text style={styles.savingsLabel}>Total Savings:</Text>
+              <Text style={styles.savingsValue}>
+                IQD {previewPromotions.data.totalSavings.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Validation Errors */}
+        {validationResult && validationResult.errors.length > 0 && (
+          <View style={[styles.section, styles.errorSection]}>
+            <Text style={styles.errorSectionTitle}>Issues with your order:</Text>
+            {validationResult.errors.map((error, index) => (
+              <Text key={index} style={styles.validationError}>
+                • {error}
+              </Text>
+            ))}
+          </View>
+        )}
+
         {/* Total */}
         <View style={styles.section}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal:</Text>
-            <Text style={styles.totalValue}>
-              IQD {subtotal.toLocaleString()}
-            </Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Delivery:</Text>
-            <Text style={styles.totalValue}>Free</Text>
-          </View>
-          <View style={[styles.totalRow, styles.grandTotalRow]}>
-            <Text style={styles.grandTotalLabel}>Total:</Text>
-            <Text style={styles.grandTotalValue}>
-              IQD {subtotal.toLocaleString()}
-            </Text>
-          </View>
+          {isValidating ? (
+            <View style={styles.validatingContainer}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={styles.validatingText}>Validating cart...</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Subtotal:</Text>
+                <Text style={styles.totalValue}>
+                  IQD {(validationResult?.summary?.subtotal ?? subtotal).toLocaleString()}
+                </Text>
+              </View>
+              {(validationResult?.summary?.discount ?? 0) > 0 && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Discount:</Text>
+                  <Text style={styles.discountValue}>
+                    -IQD {validationResult?.summary?.discount?.toLocaleString()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Delivery:</Text>
+                <Text style={styles.totalValue}>
+                  {(validationResult?.summary?.deliveryFee ?? 0) > 0
+                    ? `IQD ${validationResult?.summary?.deliveryFee?.toLocaleString()}`
+                    : 'Free'}
+                </Text>
+              </View>
+              <View style={[styles.totalRow, styles.grandTotalRow]}>
+                <Text style={styles.grandTotalLabel}>Total:</Text>
+                <Text style={styles.grandTotalValue}>
+                  IQD {(validationResult?.summary?.total ?? subtotal).toLocaleString()}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -307,5 +411,80 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  promoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  promoBadge: {
+    backgroundColor: '#4caf50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  promoBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  promoName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  savingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  savingsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4caf50',
+  },
+  savingsValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4caf50',
+  },
+  discountValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4caf50',
+  },
+  errorSection: {
+    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+  },
+  errorSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#c62828',
+    marginBottom: 8,
+  },
+  validationError: {
+    fontSize: 14,
+    color: '#c62828',
+    marginBottom: 4,
+  },
+  validatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  validatingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#666',
   },
 });

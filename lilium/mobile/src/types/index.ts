@@ -135,6 +135,110 @@ export interface CartItem {
   quantity: number;
 }
 
+// Favorites types
+export interface Favorite {
+  id: string;
+  userId: string;
+  productId: string;
+  product: Product;
+  createdAt: string;
+}
+
+// Notify-Me (Back in Stock) types
+export interface NotifyMeSubscription {
+  id: string;
+  userId: string;
+  productId: string;
+  product: Product;
+  notified: boolean;
+  createdAt: string;
+}
+
+// Cart Validation types
+export interface CartValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  validatedItems: Array<{
+    productId: string;
+    requestedQuantity: number;
+    availableQuantity: number;
+    isAvailable: boolean;
+    price: number;
+    adjustedQuantity?: number;
+  }>;
+  summary: {
+    subtotal: number;
+    discount: number;
+    deliveryFee: number;
+    total: number;
+    itemCount: number;
+  };
+  promotionPreview?: {
+    applicablePromotions: Promotion[];
+    totalSavings: number;
+  };
+}
+
+export interface QuickStockCheck {
+  allAvailable: boolean;
+  items: Array<{
+    productId: string;
+    requested: number;
+    available: number;
+    inStock: boolean;
+  }>;
+}
+
+// Promotions types
+export type PromotionType = 'percentage' | 'fixed' | 'buy_x_get_y' | 'bundle';
+
+export interface Promotion {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  type: PromotionType;
+  value: number;
+  minPurchase?: number;
+  maxDiscount?: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  buyQuantity?: number;
+  getQuantity?: number;
+  zones?: Zone[];
+}
+
+// Address types
+export interface Address {
+  id: string;
+  userId: string;
+  label: string;
+  street: string;
+  city: string;
+  zone: Zone;
+  building?: string;
+  floor?: string;
+  apartment?: string;
+  landmark?: string;
+  phone?: string;
+  isDefault: boolean;
+}
+
+export interface AddressCreateInput {
+  label: string;
+  street: string;
+  city: string;
+  zone: Zone;
+  building?: string;
+  floor?: string;
+  apartment?: string;
+  landmark?: string;
+  phone?: string;
+  isDefault?: boolean;
+}
+
 // Navigation types
 export type RootStackParamList = {
   Login: undefined;
@@ -146,10 +250,16 @@ export type RootStackParamList = {
   Orders: undefined;
   OrderDetail: { orderId: string };
   Profile: undefined;
+  Favorites: undefined;
+  Addresses: undefined;
+  AddAddress: undefined;
+  EditAddress: { addressId: string };
+  NotifyMeList: undefined;
 };
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  FavoritesTab: undefined;
   CartTab: undefined;
   OrdersTab: undefined;
   ProfileTab: undefined;

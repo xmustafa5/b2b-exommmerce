@@ -14,6 +14,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { productsApi } from '../services/api';
 import { useCart } from '../contexts/CartContext';
+import {
+  useFavorites,
+  useToggleFavorite,
+  useCheckNotifyMe,
+  useToggleNotifyMe,
+} from '../hooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 
@@ -26,6 +32,30 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     queryKey: ['product', productId],
     queryFn: () => productsApi.getProductById(productId),
   });
+
+  // Favorites
+  const { data: favorites } = useFavorites();
+  const { toggle: toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
+  const isFavorite = favorites?.some((fav) => fav.productId === productId) ?? false;
+
+  // Notify-Me (for out of stock products)
+  const { data: notifyMeStatus } = useCheckNotifyMe(productId);
+  const { toggle: toggleNotifyMe, isLoading: isNotifyMeLoading } = useToggleNotifyMe();
+  const isSubscribedToNotify = notifyMeStatus?.subscribed ?? false;
+
+  const handleToggleFavorite = () => {
+    toggleFavorite(productId, isFavorite);
+  };
+
+  const handleToggleNotifyMe = () => {
+    toggleNotifyMe(productId, isSubscribedToNotify);
+    if (!isSubscribedToNotify) {
+      Alert.alert(
+        'Notification Set',
+        'We will notify you when this product is back in stock.'
+      );
+    }
+  };
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -90,14 +120,26 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Product Image */}
-        {product.imageUrl ? (
-          <Image source={{ uri: product.imageUrl }} style={styles.productImage} />
-        ) : (
-          <View style={[styles.productImage, styles.placeholderImage]}>
-            <Text style={styles.placeholderText}>No Image</Text>
-          </View>
-        )}
+        {/* Product Image with Favorite Button */}
+        <View style={styles.imageContainer}>
+          {product.imageUrl ? (
+            <Image source={{ uri: product.imageUrl }} style={styles.productImage} />
+          ) : (
+            <View style={[styles.productImage, styles.placeholderImage]}>
+              <Text style={styles.placeholderText}>No Image</Text>
+            </View>
+          )}
+          {/* Favorite Button */}
+          <TouchableOpacity
+            style={[styles.favoriteButton, isFavoriteLoading && styles.disabledButton]}
+            onPress={handleToggleFavorite}
+            disabled={isFavoriteLoading}
+          >
+            <Text style={[styles.favoriteIcon, isFavorite && styles.favoriteIconActive]}>
+              {isFavorite ? '♥' : '♡'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.contentContainer}>
           {/* Product Name */}
@@ -154,7 +196,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      {isInStock && (
+      {isInStock ? (
         <View style={styles.bottomBar}>
           {/* Quantity Selector */}
           <View style={styles.quantityContainer}>
@@ -179,6 +221,27 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             onPress={handleAddToCart}
           >
             <Text style={styles.addToCartText}>Add to Cart</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        /* Notify Me Button for Out of Stock Products */
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={[
+              styles.notifyMeButton,
+              isSubscribedToNotify && styles.notifyMeButtonActive,
+              isNotifyMeLoading && styles.disabledButton,
+            ]}
+            onPress={handleToggleNotifyMe}
+            disabled={isNotifyMeLoading}
+          >
+            {isNotifyMeLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.notifyMeText}>
+                {isSubscribedToNotify ? 'Notification Set' : 'Notify Me When Available'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -355,5 +418,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  favoriteIcon: {
+    fontSize: 24,
+    color: '#ccc',
+  },
+  favoriteIconActive: {
+    color: '#e53935',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  notifyMeButton: {
+    flex: 1,
+    backgroundColor: '#ff9800',
+    paddingVertical: 14,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifyMeButtonActive: {
+    backgroundColor: '#4caf50',
+  },
+  notifyMeText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

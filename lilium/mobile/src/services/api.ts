@@ -7,7 +7,13 @@ import {
   Product,
   CreateOrderInput,
   Order,
-  OrdersResponse
+  OrdersResponse,
+  Favorite,
+  NotifyMeSubscription,
+  CartValidationResult,
+  QuickStockCheck,
+  Promotion,
+  Category,
 } from '../types';
 
 // API Base URL - Change this to your backend URL
@@ -55,7 +61,8 @@ api.interceptors.response.use(
 // Auth API
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post('/auth/login', data);
+    // Mobile uses /auth/login/mobile endpoint (for SHOP_OWNER role)
+    const response = await api.post('/auth/login/mobile', data);
     return response.data;
   },
 
@@ -134,6 +141,97 @@ export const notificationsApi = {
 
   testNotification: async (): Promise<{ success: boolean; message: string }> => {
     const response = await api.post('/notifications/test');
+    return response.data;
+  },
+};
+
+// Favorites API
+export const favoritesApi = {
+  getAll: async (): Promise<Favorite[]> => {
+    const response = await api.get('/users/favorites');
+    return response.data;
+  },
+
+  add: async (productId: string): Promise<Favorite> => {
+    const response = await api.post(`/users/favorites/${productId}`);
+    return response.data;
+  },
+
+  remove: async (productId: string): Promise<void> => {
+    await api.delete(`/users/favorites/${productId}`);
+  },
+};
+
+// Notify-Me (Back in Stock) API
+export const notifyMeApi = {
+  subscribe: async (productId: string): Promise<NotifyMeSubscription> => {
+    const response = await api.post(`/notify-me/${productId}`);
+    return response.data;
+  },
+
+  unsubscribe: async (productId: string): Promise<void> => {
+    await api.delete(`/notify-me/${productId}`);
+  },
+
+  getMySubscriptions: async (): Promise<NotifyMeSubscription[]> => {
+    const response = await api.get('/notify-me/my-subscriptions');
+    return response.data;
+  },
+
+  checkSubscription: async (productId: string): Promise<{ subscribed: boolean }> => {
+    const response = await api.get(`/notify-me/check/${productId}`);
+    return response.data;
+  },
+};
+
+// Cart API (Validation)
+export const cartApi = {
+  validateCheckout: async (
+    items: Array<{ productId: string; quantity: number }>,
+    addressId?: string
+  ): Promise<CartValidationResult> => {
+    const response = await api.post('/cart/validate-checkout', { items, addressId });
+    return response.data;
+  },
+
+  quickStockCheck: async (
+    items: Array<{ productId: string; quantity: number }>
+  ): Promise<QuickStockCheck> => {
+    const response = await api.post('/cart/quick-stock-check', { items });
+    return response.data;
+  },
+};
+
+// Promotions API
+export const promotionsApi = {
+  getActive: async (): Promise<Promotion[]> => {
+    const response = await api.get('/promotions', { params: { isActive: true } });
+    return response.data.data || response.data;
+  },
+
+  getById: async (id: string): Promise<Promotion> => {
+    const response = await api.get(`/promotions/${id}`);
+    return response.data;
+  },
+
+  preview: async (items: Array<{ productId: string; quantity: number }>): Promise<{
+    applicablePromotions: Promotion[];
+    totalSavings: number;
+  }> => {
+    const response = await api.post('/promotions/preview', { items });
+    return response.data;
+  },
+};
+
+// Categories API
+export const categoriesApi = {
+  getAll: async (): Promise<Category[]> => {
+    const response = await api.get('/categories');
+    return response.data.data || response.data;
+  },
+
+  getById: async (id: string): Promise<Category> => {
+    const response = await api.get(`/categories/${id}`);
     return response.data;
   },
 };

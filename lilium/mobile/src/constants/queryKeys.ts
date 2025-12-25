@@ -53,4 +53,24 @@ export const cartQueryKeys = {
   all: ['cart'] as const,
   items: () => [...cartQueryKeys.all, 'items'] as const,
   summary: () => [...cartQueryKeys.all, 'summary'] as const,
+  validation: () => [...cartQueryKeys.all, 'validation'] as const,
+};
+
+export const favoritesQueryKeys = {
+  all: ['favorites'] as const,
+  list: () => [...favoritesQueryKeys.all, 'list'] as const,
+  check: (productId: string) => [...favoritesQueryKeys.all, 'check', productId] as const,
+};
+
+export const notifyMeQueryKeys = {
+  all: ['notifyMe'] as const,
+  subscriptions: () => [...notifyMeQueryKeys.all, 'subscriptions'] as const,
+  check: (productId: string) => [...notifyMeQueryKeys.all, 'check', productId] as const,
+};
+
+export const promotionsQueryKeys = {
+  all: ['promotions'] as const,
+  active: () => [...promotionsQueryKeys.all, 'active'] as const,
+  detail: (id: string) => [...promotionsQueryKeys.all, 'detail', id] as const,
+  preview: () => [...promotionsQueryKeys.all, 'preview'] as const,
 };
