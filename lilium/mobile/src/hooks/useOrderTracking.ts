@@ -37,15 +37,15 @@ export function useOrderTracking(orderId: string) {
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
 
-  const tokens = useAuthStore((state) => state.tokens);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   const connect = useCallback(() => {
-    if (!orderId || !tokens?.accessToken) {
+    if (!orderId || !accessToken) {
       return;
     }
 
     try {
-      const wsUrl = `${getWebSocketUrl()}/ws?token=${tokens.accessToken}`;
+      const wsUrl = `${getWebSocketUrl()}/ws?token=${accessToken}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -104,7 +104,7 @@ export function useOrderTracking(orderId: string) {
       console.error('[OrderTracking] Failed to create WebSocket:', err);
       setError('Failed to connect');
     }
-  }, [orderId, tokens?.accessToken]);
+  }, [orderId, accessToken]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -142,15 +142,15 @@ export function useOrderTracking(orderId: string) {
 export function useOrderUpdates(onUpdate?: (orderId: string, status: OrderStatus) => void) {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  const tokens = useAuthStore((state) => state.tokens);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   useEffect(() => {
-    if (!tokens?.accessToken) {
+    if (!accessToken) {
       return;
     }
 
     try {
-      const wsUrl = `${getWebSocketUrl()}/ws?token=${tokens.accessToken}`;
+      const wsUrl = `${getWebSocketUrl()}/ws?token=${accessToken}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -187,7 +187,7 @@ export function useOrderUpdates(onUpdate?: (orderId: string, status: OrderStatus
     } catch (err) {
       console.error('[OrderUpdates] Failed to create WebSocket:', err);
     }
-  }, [tokens?.accessToken, onUpdate]);
+  }, [accessToken, onUpdate]);
 
   return { isConnected };
 }

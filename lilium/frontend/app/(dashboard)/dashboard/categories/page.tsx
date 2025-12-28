@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
+import { uploadApi } from "@/actions/upload";
 import type { Category, CategoryFilters } from "@/types/category";
 import { CategoryCreateDialog } from "./_components/category-create-dialog";
 import { CategoryEditDialog } from "./_components/category-edit-dialog";
@@ -179,7 +180,18 @@ export default function CategoriesPage() {
                           {category.depth > 0 && (
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                          {category.image ? (
+                            <img
+                              src={uploadApi.getImageUrl(category.image)}
+                              alt={category.nameEn}
+                              className="h-10 w-10 rounded-lg object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                              }}
+                            />
+                          ) : null}
+                          <div className={`h-10 w-10 items-center justify-center rounded-lg bg-muted ${category.image ? "hidden" : "flex"}`}>
                             <FolderTree className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>

@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Download,
   Loader2,
+  ImageIcon,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import {
 import { useProducts } from "@/hooks/useProducts";
 import { exportApi } from "@/actions/export";
 import { useToast } from "@/hooks/use-toast";
+import { uploadApi } from "@/actions/upload";
 import type { Product, ProductFilters } from "@/types/product";
 import { ProductCreateDialog } from "./_components/product-create-dialog";
 import { ProductEditDialog } from "./_components/product-edit-dialog";
@@ -245,7 +247,18 @@ export default function ProductsPage() {
                       <TableRow key={product.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                            {product.images && product.images.length > 0 ? (
+                              <img
+                                src={uploadApi.getImageUrl(product.images[0])}
+                                alt={product.nameEn}
+                                className="h-10 w-10 rounded-lg object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                                }}
+                              />
+                            ) : null}
+                            <div className={`h-10 w-10 items-center justify-center rounded-lg bg-muted ${product.images && product.images.length > 0 ? "hidden" : "flex"}`}>
                               <Package className="h-5 w-5 text-muted-foreground" />
                             </div>
                             <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,7 @@ export function ProductEditDialog({
   const updateMutation = useUpdateProduct(product.id);
   const { data: categories } = useCategories();
   const { data: companiesData } = useCompanies();
+  const [images, setImages] = useState<string[]>(product.images || []);
 
   const {
     register,
@@ -123,6 +125,7 @@ export function ProductEditDialog({
         isActive: product.isActive,
         isFeatured: product.isFeatured,
       });
+      setImages(product.images || []);
     }
   }, [open, product, reset]);
 
@@ -134,6 +137,7 @@ export function ProductEditDialog({
         cost: data.cost || undefined,
         descriptionEn: data.descriptionEn || undefined,
         descriptionAr: data.descriptionAr || undefined,
+        images: images,
       };
 
       await updateMutation.mutateAsync(submitData);
@@ -231,6 +235,17 @@ export function ProductEditDialog({
                 {...register("descriptionAr")}
               />
             </div>
+          </div>
+
+          {/* Product Images */}
+          <div className="space-y-2">
+            <Label>Product Images</Label>
+            <ImageUpload
+              value={images}
+              onChange={(value) => setImages(value as string[] || [])}
+              multiple
+              maxFiles={5}
+            />
           </div>
 
           {/* Pricing */}

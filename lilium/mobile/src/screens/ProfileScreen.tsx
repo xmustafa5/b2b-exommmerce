@@ -121,7 +121,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <MenuItem
           title="Manage Addresses"
-          onPress={() => Alert.alert('Coming Soon', 'Manage addresses feature will be available soon')}
+          onPress={() => navigation.navigate('Addresses')}
+        />
+
+        <MenuItem
+          title="Back in Stock Notifications"
+          onPress={() => navigation.navigate('NotifyMeList')}
         />
 
         <MenuItem

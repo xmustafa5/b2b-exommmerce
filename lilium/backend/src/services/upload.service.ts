@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { MultipartFile } from '@fastify/multipart';
+import { MultipartFile, SavedMultipartFile } from '@fastify/multipart';
 import fs from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
@@ -41,7 +41,7 @@ export class UploadService {
     // Generate unique filename
     const ext = path.extname(file.filename);
     const filename = `${randomUUID()}${ext}`;
-    const filepath = path.join(this.uploadDir, filename);
+    const destPath = path.join(this.uploadDir, filename);
 
     // Save file
     const buffer = await file.toBuffer();
@@ -51,7 +51,41 @@ export class UploadService {
       throw new Error(`File size exceeds maximum allowed size of ${this.maxFileSize / 1024 / 1024}MB`);
     }
 
-    await fs.writeFile(filepath, buffer);
+    await fs.writeFile(destPath, buffer);
+
+    // Return public URL
+    return `/uploads/${filename}`;
+  }
+
+  /**
+   * Upload a saved multipart file (already saved to temp location by saveRequestFiles)
+   */
+  async uploadSavedFile(file: SavedMultipartFile): Promise<string> {
+    // Validate file type
+    if (!this.allowedMimeTypes.includes(file.mimetype)) {
+      throw new Error(`File type ${file.mimetype} is not allowed. Allowed types: ${this.allowedMimeTypes.join(', ')}`);
+    }
+
+    // Generate unique filename
+    const ext = path.extname(file.filename);
+    const filename = `${randomUUID()}${ext}`;
+    const destPath = path.join(this.uploadDir, filename);
+
+    // Read from temp file
+    const buffer = await fs.readFile(file.filepath);
+
+    // Check file size
+    if (buffer.length > this.maxFileSize) {
+      // Clean up temp file
+      await fs.unlink(file.filepath).catch(() => {});
+      throw new Error(`File size exceeds maximum allowed size of ${this.maxFileSize / 1024 / 1024}MB`);
+    }
+
+    // Move to uploads directory
+    await fs.writeFile(destPath, buffer);
+
+    // Clean up temp file
+    await fs.unlink(file.filepath).catch(() => {});
 
     // Return public URL
     return `/uploads/${filename}`;
@@ -59,6 +93,14 @@ export class UploadService {
 
   async uploadMultipleFiles(files: MultipartFile[]): Promise<string[]> {
     const uploadPromises = files.map(file => this.uploadFile(file));
+    return Promise.all(uploadPromises);
+  }
+
+  /**
+   * Upload multiple saved files (from saveRequestFiles)
+   */
+  async uploadMultipleSavedFiles(files: SavedMultipartFile[]): Promise<string[]> {
+    const uploadPromises = files.map(file => this.uploadSavedFile(file));
     return Promise.all(uploadPromises);
   }
 

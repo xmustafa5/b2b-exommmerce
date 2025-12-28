@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SingleImageUpload } from "@/components/ui/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,7 @@ export function CompanyCreateDialog({
   onSuccess,
 }: CompanyCreateDialogProps) {
   const createMutation = useCreateCompany();
+  const [logo, setLogo] = useState<string | null>(null);
 
   const {
     register,
@@ -95,12 +97,17 @@ export function CompanyCreateDialog({
         minOrderAmount: 10000,
         maxDeliveryTime: 120,
       });
+      setLogo(null);
     }
   }, [open, reset]);
 
   const onSubmit = async (data: CreateCompanyFormData) => {
     try {
-      await createMutation.mutateAsync(data);
+      const submitData = {
+        ...data,
+        logo: logo || undefined,
+      };
+      await createMutation.mutateAsync(submitData);
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
@@ -221,18 +228,14 @@ export function CompanyCreateDialog({
             />
           </div>
 
-          {/* Logo URL */}
+          {/* Company Logo */}
           <div className="space-y-2">
-            <Label htmlFor="logo">Logo URL</Label>
-            <Input
-              id="logo"
-              type="url"
-              placeholder="https://example.com/logo.png"
-              {...register("logo")}
+            <Label>Company Logo</Label>
+            <SingleImageUpload
+              value={logo}
+              onChange={setLogo}
+              previewSize="lg"
             />
-            {errors.logo && (
-              <p className="text-sm text-destructive">{errors.logo.message}</p>
-            )}
           </div>
 
           {/* Zones */}

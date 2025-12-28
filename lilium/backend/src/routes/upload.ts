@@ -155,7 +155,8 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send({ error: 'No files provided' });
       }
 
-      const urls = await uploadService.uploadMultipleFiles(files);
+      // Use uploadMultipleSavedFiles for files saved via saveRequestFiles
+      const urls = await uploadService.uploadMultipleSavedFiles(files);
 
       return reply.send({
         success: true,
@@ -165,6 +166,8 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error: any) {
       fastify.log.error(error);
+      // Clean up any temp files on error
+      await request.cleanRequestFiles().catch(() => {});
       return reply.code(400).send({
         error: error.message || 'File upload failed',
       });

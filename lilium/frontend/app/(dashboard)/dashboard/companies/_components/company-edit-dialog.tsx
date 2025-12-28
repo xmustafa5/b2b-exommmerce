@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SingleImageUpload } from "@/components/ui/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export function CompanyEditDialog({
   onSuccess,
 }: CompanyEditDialogProps) {
   const updateMutation = useUpdateCompany(company.id);
+  const [logo, setLogo] = useState<string | null>(company.logo || null);
 
   const {
     register,
@@ -91,12 +93,17 @@ export function CompanyEditDialog({
         zones: company.zones,
         commissionRate: company.commission,
       });
+      setLogo(company.logo || null);
     }
   }, [open, company, reset]);
 
   const onSubmit = async (data: EditCompanyFormData) => {
     try {
-      await updateMutation.mutateAsync(data);
+      const submitData = {
+        ...data,
+        logo: logo || undefined,
+      };
+      await updateMutation.mutateAsync(submitData);
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
@@ -217,18 +224,14 @@ export function CompanyEditDialog({
             />
           </div>
 
-          {/* Logo URL */}
+          {/* Company Logo */}
           <div className="space-y-2">
-            <Label htmlFor="logo">Logo URL</Label>
-            <Input
-              id="logo"
-              type="url"
-              placeholder="https://example.com/logo.png"
-              {...register("logo")}
+            <Label>Company Logo</Label>
+            <SingleImageUpload
+              value={logo}
+              onChange={setLogo}
+              previewSize="lg"
             />
-            {errors.logo && (
-              <p className="text-sm text-destructive">{errors.logo.message}</p>
-            )}
           </div>
 
           {/* Zones */}

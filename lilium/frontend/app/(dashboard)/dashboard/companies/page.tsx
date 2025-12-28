@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCompanies } from "@/hooks/useCompanies";
+import { uploadApi } from "@/actions/upload";
 import type { Company, CompanyFilters } from "@/types/company";
 import { CompanyCreateDialog } from "./_components/company-create-dialog";
 import { CompanyEditDialog } from "./_components/company-edit-dialog";
@@ -198,16 +199,19 @@ export default function CompaniesPage() {
                     <TableRow key={company.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                            {company.logo ? (
-                              <img
-                                src={company.logo}
-                                alt={company.nameEn}
-                                className="h-10 w-10 rounded-lg object-cover"
-                              />
-                            ) : (
-                              <Building2 className="h-5 w-5 text-muted-foreground" />
-                            )}
+                          {company.logo ? (
+                            <img
+                              src={uploadApi.getImageUrl(company.logo)}
+                              alt={company.nameEn}
+                              className="h-10 w-10 rounded-lg object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                              }}
+                            />
+                          ) : null}
+                          <div className={`h-10 w-10 items-center justify-center rounded-lg bg-muted ${company.logo ? "hidden" : "flex"}`}>
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
                             <p className="font-medium">{company.nameEn}</p>

@@ -5,6 +5,7 @@
 **Backend Status:** 100% Complete - Ready for Integration
 **Phase 1 Status:** ✅ COMPLETE
 **Phase 2 Status:** ✅ COMPLETE
+**Phase 3 Status:** ✅ COMPLETE
 
 ---
 
@@ -102,20 +103,23 @@
 - [x] Add category filter to HomeScreen via FilterModal
 - [x] Add navigation route for CategoriesScreen
 
-### Phase 3: Low Priority Features
+### Phase 3: Low Priority Features ✅ COMPLETE
 
-#### 3.1 Real-Time Order Tracking
-- [ ] Install WebSocket: `npm install react-native-websocket`
-- [ ] Create `src/hooks/useOrderTracking.ts`
-- [ ] Update OrderDetailScreen with live status
-- [ ] Handle WebSocket connection
-- [ ] Handle WebSocket disconnection/reconnection
+#### 3.1 Real-Time Order Tracking ✅
+- [x] Create `src/hooks/useOrderTracking.ts` with WebSocket hooks
+- [x] Implement `useOrderTracking(orderId)` hook for single order tracking
+- [x] Implement `useOrderUpdates()` hook for all order updates
+- [x] Update OrderDetailScreen with live status display
+- [x] Handle WebSocket connection with status indicator
+- [x] Handle WebSocket disconnection/reconnection with exponential backoff
+- [x] Update query cache when live status updates received
 - [ ] Test real-time status updates
 
-#### 3.2 NotifyMe List Screen
-- [ ] Create `src/screens/NotifyMeListScreen.tsx`
-- [ ] Add navigation route
-- [ ] Link from Profile screen
+#### 3.2 NotifyMe List Screen ✅
+- [x] Create `src/screens/NotifyMeListScreen.tsx`
+- [x] Add navigation route in App.tsx
+- [x] Link from Profile screen ("Back in Stock Notifications")
+- [x] Fixed "Manage Addresses" link to navigate to Addresses screen
 
 ### Common Tasks ✅ PARTIALLY COMPLETE
 - [x] Update App.tsx with new navigation screens

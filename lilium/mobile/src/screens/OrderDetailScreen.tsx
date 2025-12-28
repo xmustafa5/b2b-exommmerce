@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,22 +9,40 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, OrderStatus, OrderItem } from '../types';
 import { ordersApi } from '../services/api';
 import { useCart } from '../contexts/CartContext';
+import { useOrderTracking } from '../hooks/useOrderTracking';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
 
 export const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { orderId } = route.params;
   const { addItem, clearCart } = useCart();
+  const queryClient = useQueryClient();
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['order', orderId],
     queryFn: () => ordersApi.getOrderById(orderId),
   });
+
+  // Real-time order tracking via WebSocket
+  const { status: liveStatus, isConnected, error: trackingError } = useOrderTracking(orderId);
+
+  // Update query cache when we receive live status updates
+  useEffect(() => {
+    if (liveStatus && order && liveStatus !== order.status) {
+      queryClient.setQueryData(['order', orderId], {
+        ...order,
+        status: liveStatus,
+      });
+    }
+  }, [liveStatus, order, orderId, queryClient]);
+
+  // Use live status if available, otherwise fall back to fetched status
+  const currentStatus = liveStatus || order?.status;
 
   const getStatusColor = (status: OrderStatus): string => {
     switch (status) {
@@ -136,7 +154,7 @@ export const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  const statusColor = getStatusColor(order.status);
+  const statusColor = getStatusColor(currentStatus || order.status);
 
   return (
     <View style={styles.container}>
@@ -146,10 +164,19 @@ export const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.headerTop}>
             <Text style={styles.orderNumber}>Order #{order.id.substring(0, 8)}</Text>
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-              <Text style={styles.statusText}>{order.status}</Text>
+              <Text style={styles.statusText}>{currentStatus || order.status}</Text>
             </View>
           </View>
-          <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+          <View style={styles.headerMeta}>
+            <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+            {/* Live tracking indicator */}
+            <View style={styles.trackingIndicator}>
+              <View style={[styles.trackingDot, isConnected ? styles.trackingDotConnected : styles.trackingDotDisconnected]} />
+              <Text style={styles.trackingText}>
+                {isConnected ? 'Live tracking' : 'Offline'}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Order Items */}
@@ -250,6 +277,31 @@ const styles = StyleSheet.create({
   },
   orderDate: {
     fontSize: 14,
+    color: '#666',
+  },
+  headerMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trackingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trackingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  trackingDotConnected: {
+    backgroundColor: '#4caf50',
+  },
+  trackingDotDisconnected: {
+    backgroundColor: '#9e9e9e',
+  },
+  trackingText: {
+    fontSize: 12,
     color: '#666',
   },
   section: {

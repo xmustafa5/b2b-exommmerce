@@ -22,6 +22,7 @@ import { AddressesScreen } from './src/screens/AddressesScreen';
 import { AddAddressScreen } from './src/screens/AddAddressScreen';
 import { EditAddressScreen } from './src/screens/EditAddressScreen';
 import { CategoriesScreen } from './src/screens/CategoriesScreen';
+import { NotifyMeListScreen } from './src/screens/NotifyMeListScreen';
 import type { RootStackParamList } from './src/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -238,6 +239,11 @@ function AppNavigator() {
               name="Categories"
               component={CategoriesScreen}
               options={{ title: 'Categories' }}
+            />
+            <Stack.Screen
+              name="NotifyMeList"
+              component={NotifyMeListScreen}
+              options={{ title: 'Back in Stock' }}
             />
           </>
         )}

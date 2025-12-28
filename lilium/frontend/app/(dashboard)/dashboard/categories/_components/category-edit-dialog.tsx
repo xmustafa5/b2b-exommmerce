@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SingleImageUpload } from "@/components/ui/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export function CategoryEditDialog({
 }: CategoryEditDialogProps) {
   const updateMutation = useUpdateCategory(category.id);
   const { data: categories } = useCategories();
+  const [image, setImage] = useState<string | null>(category.image || null);
 
   const {
     register,
@@ -89,6 +91,7 @@ export function CategoryEditDialog({
         displayOrder: category.displayOrder,
         isActive: category.isActive,
       });
+      setImage(category.image || null);
     }
   }, [open, category, reset]);
 
@@ -97,6 +100,7 @@ export function CategoryEditDialog({
       const submitData = {
         ...data,
         parentId: data.parentId || undefined,
+        image: image || undefined,
       };
 
       await updateMutation.mutateAsync(submitData);
@@ -160,6 +164,16 @@ export function CategoryEditDialog({
               className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Enter category description"
               {...register("description")}
+            />
+          </div>
+
+          {/* Category Image */}
+          <div className="space-y-2">
+            <Label>Category Image</Label>
+            <SingleImageUpload
+              value={image}
+              onChange={setImage}
+              previewSize="md"
             />
           </div>
 

@@ -188,6 +188,7 @@ async function buildServer() {
           { name: 'health', description: 'Health check endpoints' },
           { name: 'auth', description: 'Authentication endpoints' },
           { name: 'Users', description: 'User profile management endpoints' },
+          { name: 'favorites', description: 'User favorites/wishlist endpoints' },
           { name: 'admins', description: 'Admin management endpoints' },
           { name: 'products', description: 'Product management endpoints' },
           { name: 'categories', description: 'Category management endpoints' },
@@ -239,6 +240,7 @@ async function buildServer() {
     await fastify.register(import('./routes/health'), { prefix: '/api/health' })
     await fastify.register(import('./routes/auth.simple'), { prefix: '/api/auth' })
     await fastify.register(import('./routes/users'), { prefix: '/api/users' })
+    await fastify.register(import('./routes/favorites'), { prefix: '/api/users/favorites' })
     await fastify.register(import('./routes/admins'), { prefix: '/api/admins' })
     await fastify.register(import('./routes/products'), { prefix: '/api/products' })
     await fastify.register(import('./routes/categories'), { prefix: '/api/categories' })
