@@ -15,17 +15,8 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       description: 'Upload a single file (image). Supported formats: JPEG, PNG, WebP, GIF. Maximum file size: 5MB. Only accessible by SUPER_ADMIN and LOCATION_ADMIN roles.',
       security: [{ bearerAuth: [] }],
       consumes: ['multipart/form-data'],
-      body: {
-        type: 'object',
-        required: ['file'],
-        properties: {
-          file: {
-            type: 'string',
-            format: 'binary',
-            description: 'The file to upload. Supported formats: image/jpeg, image/png, image/webp, image/gif. Maximum size: 5MB.'
-          }
-        }
-      },
+      // Note: body schema is intentionally omitted for multipart/form-data
+      // Validation is handled in the route handler via uploadService
       response: {
         200: {
           description: 'File uploaded successfully',
@@ -93,20 +84,8 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       description: 'Upload multiple files (images) at once. Supported formats: JPEG, PNG, WebP, GIF. Maximum file size per file: 5MB. Only accessible by SUPER_ADMIN and LOCATION_ADMIN roles.',
       security: [{ bearerAuth: [] }],
       consumes: ['multipart/form-data'],
-      body: {
-        type: 'object',
-        required: ['files'],
-        properties: {
-          files: {
-            type: 'array',
-            items: {
-              type: 'string',
-              format: 'binary'
-            },
-            description: 'Array of files to upload. Supported formats: image/jpeg, image/png, image/webp, image/gif. Maximum size per file: 5MB.'
-          }
-        }
-      },
+      // Note: body schema is intentionally omitted for multipart/form-data
+      // Validation is handled in the route handler via uploadService
       response: {
         200: {
           description: 'Files uploaded successfully',

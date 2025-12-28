@@ -34,7 +34,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cartData = await AsyncStorage.getItem(CART_STORAGE_KEY);
       if (cartData) {
-        setItems(JSON.parse(cartData));
+        const parsedItems = JSON.parse(cartData);
+        // Ensure quantity and price are numbers
+        const validatedItems = parsedItems.map((item: CartItem) => ({
+          ...item,
+          quantity: Number(item.quantity) || 1,
+          product: item.product ? {
+            ...item.product,
+            price: Number(item.product.price) || 0,
+            stock: Number(item.product.stock) || 0,
+            minOrderQuantity: Number(item.product.minOrderQuantity) || 1,
+          } : item.product,
+        }));
+        setItems(validatedItems);
       }
     } catch (error) {
       console.error('Error loading cart:', error);
@@ -50,19 +62,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addItem = (product: Product, quantity: number) => {
+    // Ensure quantity is a valid number
+    const validQuantity = Number(quantity) || 1;
+
+    // Ensure product has numeric values
+    const validProduct: Product = {
+      ...product,
+      price: Number(product.price) || 0,
+      stock: Number(product.stock) || 0,
+      minOrderQuantity: Number(product.minOrderQuantity) || 1,
+    };
+
     setItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.productId === product.id);
+      const existingItem = prevItems.find((item) => item.productId === validProduct.id);
 
       if (existingItem) {
         // Update quantity of existing item
         return prevItems.map((item) =>
-          item.productId === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+          item.productId === validProduct.id
+            ? { ...item, quantity: (Number(item.quantity) || 0) + validQuantity, product: validProduct }
             : item
         );
       } else {
         // Add new item
-        return [...prevItems, { productId: product.id, product, quantity }];
+        return [...prevItems, { productId: validProduct.id, product: validProduct, quantity: validQuantity }];
       }
     });
   };
@@ -93,10 +116,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return item?.quantity || 0;
   };
 
-  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  const itemCount = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
 
   const subtotal = items.reduce(
-    (total, item) => total + item.product.price * item.quantity,
+    (total, item) => total + (Number(item.product?.price) || 0) * (Number(item.quantity) || 0),
     0
   );
 

@@ -7,10 +7,27 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, CartItem } from '../types';
 import { useCart } from '../contexts/CartContext';
+
+// Helper for cross-platform alerts
+const showAlert = (title: string, message: string, buttons?: Array<{ text: string; style?: string; onPress?: () => void }>) => {
+  if (Platform.OS === 'web') {
+    if (buttons && buttons.length > 1) {
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      if (confirmed && buttons[1]?.onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
 
@@ -18,7 +35,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
   const { items, subtotal, removeItem, updateQuantity, itemCount } = useCart();
 
   const handleRemoveItem = (productId: string, productName: string) => {
-    Alert.alert(
+    showAlert(
       'Remove Item',
       `Remove ${productName} from cart?`,
       [
@@ -34,7 +51,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleCheckout = () => {
     if (items.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to cart before checkout');
+      showAlert('Empty Cart', 'Please add items to cart before checkout');
       return;
     }
     navigation.navigate('Checkout');
@@ -42,7 +59,9 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderCartItem = ({ item }: { item: CartItem }) => {
     const { product, quantity } = item;
-    const itemTotal = product.price * quantity;
+    const price = Number(product.price) || 0;
+    const qty = Number(quantity) || 0;
+    const itemTotal = price * qty;
 
     return (
       <View style={styles.cartItem}>
@@ -59,7 +78,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
               {product.nameEn}
             </Text>
             <Text style={styles.itemPrice}>
-              IQD {product.price.toLocaleString()}
+              IQD {price.toLocaleString()}
             </Text>
             <Text style={styles.itemTotal}>
               Total: IQD {itemTotal.toLocaleString()}
@@ -72,18 +91,19 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.quantityContainer}>
             <TouchableOpacity
               style={styles.quantityButton}
-              onPress={() => updateQuantity(product.id, quantity - 1)}
+              onPress={() => updateQuantity(product.id, qty - 1)}
             >
               <Text style={styles.quantityButtonText}>-</Text>
             </TouchableOpacity>
-            <Text style={styles.quantityText}>{quantity}</Text>
+            <Text style={styles.quantityText}>{qty}</Text>
             <TouchableOpacity
               style={styles.quantityButton}
               onPress={() => {
-                if (quantity >= product.stock) {
-                  Alert.alert('Stock Limit', `Only ${product.stock} items available`);
+                const stock = Number(product.stock) || 0;
+                if (qty >= stock) {
+                  showAlert('Stock Limit', `Only ${stock} items available`);
                 } else {
-                  updateQuantity(product.id, quantity + 1);
+                  updateQuantity(product.id, qty + 1);
                 }
               }}
             >

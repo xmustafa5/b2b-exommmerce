@@ -51,6 +51,7 @@ export interface Product {
   stock: number;
   categoryId: string;
   category?: Category;
+  companyId: string;
   imageUrl?: string;
   images: string[];
   zones: Zone[];
@@ -117,8 +118,12 @@ export interface CreateOrderInput {
     productId: string;
     quantity: number;
   }[];
-  deliveryAddress: string;
+  addressId: string;
+  companyId: string;
+  zone: 'KARKH' | 'RUSAFA';
   notes?: string;
+  paymentMethod?: 'cash' | 'card' | 'bank_transfer';
+  deliveryDate?: string;
 }
 
 export interface OrdersResponse {

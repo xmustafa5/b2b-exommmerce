@@ -96,30 +96,36 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     prefetchProduct(productId);
   };
 
-  const renderProduct = ({ item }: { item: Product }) => (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => handleProductPress(item.id)}
-      onPressIn={() => handleProductPressIn(item.id)}
-    >
-      {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-      ) : (
-        <View style={[styles.productImage, styles.placeholderImage]}>
-          <Text style={styles.placeholderText}>No Image</Text>
+  const renderProduct = ({ item }: { item: Product }) => {
+    const price = Number(item.price) || 0;
+    const stock = Number(item.stock) || 0;
+    const minQty = Number(item.minOrderQuantity) || 1;
+
+    return (
+      <TouchableOpacity
+        style={styles.productCard}
+        onPress={() => handleProductPress(item.id)}
+        onPressIn={() => handleProductPressIn(item.id)}
+      >
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+        ) : (
+          <View style={[styles.productImage, styles.placeholderImage]}>
+            <Text style={styles.placeholderText}>No Image</Text>
+          </View>
+        )}
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.nameEn}
+          </Text>
+          <Text style={styles.productPrice}>IQD {price.toLocaleString()}</Text>
+          <Text style={styles.productStock}>
+            Stock: {stock} | Min: {minQty}
+          </Text>
         </View>
-      )}
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>
-          {item.nameEn}
-        </Text>
-        <Text style={styles.productPrice}>IQD {item.price.toLocaleString()}</Text>
-        <Text style={styles.productStock}>
-          Stock: {item.stock} | Min: {item.minOrderQuantity}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (isLoading && !data) {
     return (

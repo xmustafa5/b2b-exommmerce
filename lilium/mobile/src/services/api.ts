@@ -25,6 +25,23 @@ import {
 // - Physical Device: http://YOUR_IP:3000/api
 const API_BASE_URL = 'http://localhost:3000/api';
 
+// Base URL for static files (images, uploads)
+const STATIC_BASE_URL = 'http://localhost:3000';
+
+/**
+ * Get full image URL from relative path
+ * Converts /uploads/xxx.jpg to http://localhost:3000/uploads/xxx.jpg
+ */
+export const getImageUrl = (path: string | undefined | null): string | undefined => {
+  if (!path) return undefined;
+  // Already a full URL
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  // Prepend static base URL
+  return `${STATIC_BASE_URL}${path}`;
+};
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -78,6 +95,18 @@ export const authApi = {
   },
 };
 
+/**
+ * Transform backend product to mobile Product type
+ * - Maps minOrderQty to minOrderQuantity
+ * - Generates full imageUrl from images array
+ */
+const transformProduct = (p: any): Product => ({
+  ...p,
+  minOrderQuantity: p.minOrderQty || p.minOrderQuantity || 1,
+  imageUrl: getImageUrl(p.images?.[0]) || getImageUrl(p.imageUrl),
+  images: (p.images || []).map((img: string) => getImageUrl(img) || img),
+});
+
 // Products API
 export const productsApi = {
   getProducts: async (params?: {
@@ -91,12 +120,7 @@ export const productsApi = {
     // Transform API response to match expected ProductsResponse type
     const apiData = response.data;
     return {
-      products: (apiData.data || []).map((p: any) => ({
-        ...p,
-        // Map API field names to mobile type field names
-        minOrderQuantity: p.minOrderQty || p.minOrderQuantity || 1,
-        imageUrl: p.images?.[0] || p.imageUrl,
-      })),
+      products: (apiData.data || []).map(transformProduct),
       total: apiData.pagination?.total || 0,
       page: apiData.pagination?.page || 1,
       totalPages: apiData.pagination?.totalPages || 1,
@@ -105,12 +129,7 @@ export const productsApi = {
 
   getProductById: async (id: string): Promise<Product> => {
     const response = await api.get(`/products/${id}`);
-    const p = response.data;
-    return {
-      ...p,
-      minOrderQuantity: p.minOrderQty || p.minOrderQuantity || 1,
-      imageUrl: p.images?.[0] || p.imageUrl,
-    };
+    return transformProduct(response.data);
   },
 
   getFeaturedProducts: async (zones?: string[]): Promise<Product[]> => {
@@ -118,11 +137,7 @@ export const productsApi = {
       params: { zones: zones?.join(',') },
     });
     const products = response.data.data || response.data || [];
-    return products.map((p: any) => ({
-      ...p,
-      minOrderQuantity: p.minOrderQty || p.minOrderQuantity || 1,
-      imageUrl: p.images?.[0] || p.imageUrl,
-    }));
+    return products.map(transformProduct);
   },
 };
 
@@ -192,16 +207,26 @@ export const notificationsApi = {
   },
 };
 
+/**
+ * Transform backend favorite to mobile Favorite type
+ * Transforms the nested product correctly
+ */
+const transformFavorite = (fav: any): Favorite => ({
+  ...fav,
+  product: fav.product ? transformProduct(fav.product) : fav.product,
+});
+
 // Favorites API
 export const favoritesApi = {
   getAll: async (): Promise<Favorite[]> => {
     const response = await api.get('/users/favorites');
-    return response.data;
+    const favorites = response.data || [];
+    return favorites.map(transformFavorite);
   },
 
   add: async (productId: string): Promise<Favorite> => {
     const response = await api.post(`/users/favorites/${productId}`);
-    return response.data;
+    return transformFavorite(response.data);
   },
 
   remove: async (productId: string): Promise<void> => {
@@ -209,12 +234,21 @@ export const favoritesApi = {
   },
 };
 
+/**
+ * Transform backend notify-me subscription to mobile type
+ */
+const transformNotifyMeSubscription = (s: any): NotifyMeSubscription => ({
+  ...s,
+  product: s.product ? transformProduct(s.product) : s.product,
+});
+
 // Notify-Me (Back in Stock) API
 export const notifyMeApi = {
   subscribe: async (productId: string): Promise<NotifyMeSubscription> => {
     const response = await api.post(`/notify-me/${productId}`);
     // Backend returns { success, data, message } - extract data
-    return response.data.data || response.data;
+    const data = response.data.data || response.data;
+    return transformNotifyMeSubscription(data);
   },
 
   unsubscribe: async (productId: string): Promise<void> => {
@@ -225,15 +259,7 @@ export const notifyMeApi = {
     const response = await api.get('/notify-me/my-subscriptions');
     // Backend returns { success, data: [...], count } - extract data array
     const subscriptions = response.data.data || response.data || [];
-    // Map product fields for mobile compatibility
-    return subscriptions.map((s: any) => ({
-      ...s,
-      product: s.product ? {
-        ...s.product,
-        imageUrl: s.product.images?.[0] || s.product.imageUrl,
-        minOrderQuantity: s.product.minOrderQty || s.product.minOrderQuantity || 1,
-      } : undefined,
-    }));
+    return subscriptions.map(transformNotifyMeSubscription);
   },
 
   checkSubscription: async (productId: string): Promise<{ subscribed: boolean }> => {
@@ -282,16 +308,25 @@ export const promotionsApi = {
   },
 };
 
+/**
+ * Transform backend category to mobile Category type
+ */
+const transformCategory = (cat: any): Category => ({
+  ...cat,
+  imageUrl: getImageUrl(cat.imageUrl) || getImageUrl(cat.image),
+});
+
 // Categories API
 export const categoriesApi = {
   getAll: async (filters?: { isActive?: boolean }): Promise<Category[]> => {
     const response = await api.get('/categories', { params: filters });
-    return response.data.data || response.data;
+    const categories = response.data.data || response.data || [];
+    return categories.map(transformCategory);
   },
 
   getById: async (id: string): Promise<Category> => {
     const response = await api.get(`/categories/${id}`);
-    return response.data;
+    return transformCategory(response.data);
   },
 };
 

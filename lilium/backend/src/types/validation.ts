@@ -96,7 +96,7 @@ export const createProductSchema = z.object({
   stock: z.number().int().min(0, 'Stock cannot be negative').default(0),
   minOrderQty: z.number().int().positive('Minimum order quantity must be positive').default(1),
   unit: z.string().max(50).default('piece'),
-  images: z.array(z.string().url('Invalid image URL')).max(10, 'Maximum 10 images allowed').default([]),
+  images: z.array(z.string().min(1, 'Image path is required')).max(10, 'Maximum 10 images allowed').default([]),
   categoryId: z.string().min(1, 'Category is required'),
   companyId: z.string().optional(),
   zones: z.array(z.nativeEnum(Zone)).min(1, 'At least one zone is required'),
@@ -143,7 +143,7 @@ export const createCategorySchema = z.object({
   nameEn: z.string().min(1, 'English name is required').max(100, 'English name must be less than 100 characters'),
   slug: z.string().max(100).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only').optional(),
   description: z.string().max(500).optional(),
-  image: z.string().url('Invalid image URL').optional().nullable(),
+  image: z.string().optional().nullable(),
   parentId: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
   displayOrder: z.number().int().min(0).default(0),
@@ -298,7 +298,7 @@ export const createCompanySchema = z.object({
   nameAr: z.string().min(1, 'Arabic name is required').max(100),
   nameEn: z.string().min(1, 'English name is required').max(100),
   description: z.string().max(500).optional(),
-  logo: z.string().url('Invalid logo URL').optional().nullable(),
+  logo: z.string().optional().nullable(),
   email: z.string().email('Invalid email').optional().nullable(),
   phone: z.string().min(10).max(20).optional().nullable(),
   address: z.string().max(300).optional(),
@@ -406,7 +406,7 @@ export const sendNotificationSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100),
   body: z.string().min(1, 'Body is required').max(500),
   data: z.record(z.string()).optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().optional(),
 });
 
 export const sendToUserSchema = sendNotificationSchema.extend({

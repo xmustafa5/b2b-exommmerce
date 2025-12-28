@@ -98,6 +98,7 @@ async function buildServer() {
         }
       } : false, // Disable CSP in development for Swagger UI
       crossOriginEmbedderPolicy: false, // Allow embedding for development
+      crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin image loading
     })
 
     // Response compression

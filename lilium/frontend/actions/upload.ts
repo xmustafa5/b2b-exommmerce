@@ -16,6 +16,8 @@ uploadClient.interceptors.request.use(
       const token = localStorage.getItem("accessToken");
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.warn("[Upload] No access token found in localStorage");
       }
     }
     return config;

@@ -124,12 +124,10 @@ export function ImageUpload({
         >
           {isUploading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Uploading...
             </>
           ) : (
             <>
-              <Upload className="mr-2 h-4 w-4" />
               {multiple ? "Upload Images" : "Upload Image"}
             </>
           )}
@@ -264,7 +262,7 @@ export function SingleImageUpload({
       try {
         const filename = uploadApi.extractFilename(value);
         if (filename) {
-          await uploadApi.deleteFile(filename).catch(() => {});
+          await uploadApi.deleteFile(filename).catch(() => { });
         }
       } catch {
         // Ignore errors
@@ -315,14 +313,11 @@ export function SingleImageUpload({
           )}
           onClick={() => !disabled && !isUploading && document.getElementById(inputId)?.click()}
         >
-          {isUploading ? (
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          ) : (
-            <>
-              <Upload className="h-6 w-6 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground mt-1">Upload</span>
-            </>
-          )}
+
+          <>
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground mt-1">Upload</span>
+          </>
         </div>
       )}
 

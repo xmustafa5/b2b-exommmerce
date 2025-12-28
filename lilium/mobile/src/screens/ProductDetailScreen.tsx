@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,6 +24,23 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 
+// Helper for cross-platform alerts (Alert.alert doesn't work on web)
+const showAlert = (title: string, message: string, buttons?: Array<{ text: string; style?: string; onPress?: () => void }>) => {
+  if (Platform.OS === 'web') {
+    // On web, use window.confirm for simple alerts
+    if (buttons && buttons.length > 1) {
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      if (confirmed && buttons[1]?.onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
+
 export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { productId } = route.params;
   const { addItem, getItemQuantity } = useCart();
@@ -32,6 +50,14 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     queryKey: ['product', productId],
     queryFn: () => productsApi.getProductById(productId),
   });
+
+  // Set initial quantity to minOrderQuantity when product loads
+  useEffect(() => {
+    if (product) {
+      const minQty = Number(product.minOrderQuantity) || 1;
+      setQuantity(minQty);
+    }
+  }, [product]);
 
   // Favorites
   const { data: favorites } = useFavorites();
@@ -50,7 +76,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleToggleNotifyMe = () => {
     toggleNotifyMe(productId, isSubscribedToNotify);
     if (!isSubscribedToNotify) {
-      Alert.alert(
+      showAlert(
         'Notification Set',
         'We will notify you when this product is back in stock.'
       );
@@ -60,28 +86,32 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleAddToCart = () => {
     if (!product) return;
 
-    if (quantity < product.minOrderQuantity) {
-      Alert.alert(
+    const minQty = Number(product.minOrderQuantity) || 1;
+    const stock = Number(product.stock) || 0;
+
+    if (quantity < minQty) {
+      showAlert(
         'Invalid Quantity',
-        `Minimum order quantity is ${product.minOrderQuantity}`
+        `Minimum order quantity is ${minQty}`
       );
       return;
     }
 
-    if (quantity > product.stock) {
-      Alert.alert('Out of Stock', `Only ${product.stock} items available`);
+    if (quantity > stock) {
+      showAlert('Out of Stock', `Only ${stock} items available`);
       return;
     }
 
     addItem(product, quantity);
-    Alert.alert('Success', 'Product added to cart', [
+    showAlert('Success', 'Product added to cart', [
       { text: 'Continue Shopping', style: 'cancel' },
       { text: 'View Cart', onPress: () => navigation.navigate('Cart') },
     ]);
   };
 
   const incrementQuantity = () => {
-    if (product && quantity < product.stock) {
+    const stock = Number(product?.stock) || 0;
+    if (product && quantity < stock) {
       setQuantity(quantity + 1);
     }
   };
@@ -115,7 +145,10 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   const currentInCart = getItemQuantity(product.id);
-  const isInStock = product.stock > 0;
+  const stock = Number(product.stock) || 0;
+  const price = Number(product.price) || 0;
+  const minOrderQty = Number(product.minOrderQuantity) || 1;
+  const isInStock = stock > 0;
 
   return (
     <View style={styles.container}>
@@ -149,13 +182,13 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
 
           {/* Price */}
-          <Text style={styles.price}>IQD {product.price.toLocaleString()}</Text>
+          <Text style={styles.price}>IQD {price.toLocaleString()}</Text>
 
           {/* Stock Status */}
           <View style={styles.stockContainer}>
             {isInStock ? (
               <View style={styles.inStockBadge}>
-                <Text style={styles.inStockText}>In Stock: {product.stock}</Text>
+                <Text style={styles.inStockText}>In Stock: {stock}</Text>
               </View>
             ) : (
               <View style={styles.outOfStockBadge}>
@@ -167,7 +200,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* Min Order Quantity */}
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Minimum Order:</Text>
-            <Text style={styles.infoValue}>{product.minOrderQuantity} units</Text>
+            <Text style={styles.infoValue}>{minOrderQty} units</Text>
           </View>
 
           {/* Currently in Cart */}

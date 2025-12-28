@@ -387,8 +387,8 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
           unit: { type: 'string', default: 'piece', description: 'Unit of measurement (piece, box, carton, etc.)' },
           images: {
             type: 'array',
-            items: { type: 'string', format: 'uri' },
-            description: 'Array of image URLs'
+            items: { type: 'string' },
+            description: 'Array of image URLs or paths (e.g., /uploads/image.jpg)'
           },
           categoryId: { type: 'string', description: 'Category ID' },
           companyId: { type: 'string', description: 'Company/Vendor ID' },
@@ -498,7 +498,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['id'],
         properties: {
-          id: { type: 'string', format: 'uuid', description: 'Product ID to update' }
+          id: { type: 'string', description: 'Product ID to update' }
         }
       },
       body: {
@@ -517,8 +517,8 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
           unit: { type: 'string', description: 'Unit of measurement (piece, box, carton, etc.)' },
           images: {
             type: 'array',
-            items: { type: 'string', format: 'uri' },
-            description: 'Array of image URLs'
+            items: { type: 'string' },
+            description: 'Array of image URLs or paths (e.g., /uploads/image.jpg)'
           },
           categoryId: { type: 'string', description: 'Category ID' },
           companyId: { type: 'string', description: 'Company/Vendor ID' },
@@ -739,7 +739,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['id'],
         properties: {
-          id: { type: 'string', format: 'uuid', description: 'Product ID to delete' }
+          id: { type: 'string', description: 'Product ID to delete' }
         }
       },
       response: {
@@ -801,7 +801,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         properties: {
           ids: {
             type: 'array',
-            items: { type: 'string', format: 'uuid' },
+            items: { type: 'string' },
             minItems: 1,
             description: 'Array of product IDs to update'
           },
@@ -819,8 +819,8 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
               stock: { type: 'number', minimum: 0 },
               minOrderQty: { type: 'number', minimum: 1 },
               unit: { type: 'string' },
-              categoryId: { type: 'string', format: 'uuid' },
-              companyId: { type: 'string', format: 'uuid' },
+              categoryId: { type: 'string' },
+              companyId: { type: 'string' },
               zones: {
                 type: 'array',
                 items: { type: 'string', enum: ['KARKH', 'RUSAFA'] }
@@ -935,7 +935,7 @@ const productRoutes: FastifyPluginAsync = async (fastify) => {
         properties: {
           ids: {
             type: 'array',
-            items: { type: 'string', format: 'uuid' },
+            items: { type: 'string' },
             minItems: 1,
             description: 'Array of product IDs to delete'
           }

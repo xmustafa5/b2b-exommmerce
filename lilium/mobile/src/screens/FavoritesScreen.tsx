@@ -9,11 +9,28 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Favorite } from '../types';
 import { useFavorites, useRemoveFavorite } from '../hooks';
 import { useCart } from '../contexts/CartContext';
+
+// Helper for cross-platform alerts
+const showAlert = (title: string, message: string, buttons?: Array<{ text: string; style?: string; onPress?: () => void }>) => {
+  if (Platform.OS === 'web') {
+    if (buttons && buttons.length > 1) {
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      if (confirmed && buttons[1]?.onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Favorites'>;
 
@@ -27,7 +44,7 @@ export const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleRemoveFavorite = (productId: string, productName: string) => {
-    Alert.alert(
+    showAlert(
       'Remove from Favorites',
       `Remove "${productName}" from favorites?`,
       [
@@ -45,17 +62,21 @@ export const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleAddToCart = (favorite: Favorite) => {
     const { product } = favorite;
-    if (product.stock > 0) {
-      addItem(product, product.minOrderQuantity);
-      Alert.alert('Added to Cart', `${product.nameEn} added to cart`);
+    const stock = Number(product.stock) || 0;
+    const minQty = Number(product.minOrderQuantity) || 1;
+
+    if (stock > 0) {
+      addItem(product, minQty);
+      showAlert('Added to Cart', `${product.nameEn} added to cart`);
     } else {
-      Alert.alert('Out of Stock', 'This product is currently out of stock');
+      showAlert('Out of Stock', 'This product is currently out of stock');
     }
   };
 
   const renderFavorite = ({ item }: { item: Favorite }) => {
     const { product } = item;
-    const isInStock = product.stock > 0;
+    const stock = Number(product.stock) || 0;
+    const isInStock = stock > 0;
 
     return (
       <TouchableOpacity
@@ -77,11 +98,11 @@ export const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
             {product.nameEn}
           </Text>
           <Text style={styles.productPrice}>
-            IQD {product.price.toLocaleString()}
+            IQD {(Number(product.price) || 0).toLocaleString()}
           </Text>
           <View style={styles.stockContainer}>
             {isInStock ? (
-              <Text style={styles.inStockText}>In Stock: {product.stock}</Text>
+              <Text style={styles.inStockText}>In Stock: {stock}</Text>
             ) : (
               <Text style={styles.outOfStockText}>Out of Stock</Text>
             )}

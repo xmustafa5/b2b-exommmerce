@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   FlatList,
+  Platform,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +19,30 @@ import type { RootStackParamList, CartValidationResult, Address } from '../types
 import { useCart } from '../contexts/CartContext';
 import { useCreateOrder, useValidateCheckout, usePreviewPromotions, useAddresses } from '../hooks';
 import { checkoutSchema, CheckoutFormData } from '../schemas';
+
+// Helper for cross-platform alerts
+const showAlert = (
+  title: string,
+  message: string,
+  buttons?: Array<{ text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }>
+) => {
+  if (Platform.OS === 'web') {
+    if (buttons && buttons.length > 1) {
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      if (confirmed && buttons[1]?.onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+      // Execute the first button's onPress if it exists (for simple OK alerts)
+      if (buttons && buttons[0]?.onPress) {
+        buttons[0].onPress();
+      }
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
@@ -56,6 +81,7 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
     control,
     handleSubmit,
     formState: { errors },
+    getValues,
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -69,10 +95,6 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
     if (addresses && addresses.length > 0 && !selectedAddress) {
       const defaultAddr = addresses.find((addr) => addr.isDefault) || addresses[0];
       setSelectedAddress(defaultAddr);
-      if (defaultAddr) {
-        const fullAddress = formatAddressForDelivery(defaultAddr);
-        // We'll update the form value below
-      }
     }
   }, [addresses, selectedAddress]);
 
@@ -94,7 +116,7 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
 
             // Show warnings if any
             if (result.warnings.length > 0) {
-              Alert.alert('Warning', result.warnings.join('\n'));
+              showAlert('Warning', result.warnings.join('\n'));
             }
           },
           onError: () => {
@@ -109,24 +131,22 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
   }, [items.length]);
 
   const onSubmit = (data: CheckoutFormData) => {
+    console.log('onSubmit called', { data, selectedAddress, items: items.length, validationResult });
+
     if (items.length === 0) {
-      Alert.alert('Empty Cart', 'Your cart is empty');
+      showAlert('Empty Cart', 'Your cart is empty');
       return;
     }
 
-    // Determine delivery address - use selected address or form input
-    const deliveryAddressText = selectedAddress
-      ? formatAddressForDelivery(selectedAddress)
-      : data.deliveryAddress.trim();
-
-    if (!deliveryAddressText) {
-      Alert.alert('Address Required', 'Please select or enter a delivery address');
+    // Must have a selected address with an ID
+    if (!selectedAddress) {
+      showAlert('Address Required', 'Please select a delivery address');
       return;
     }
 
-    // Check if validation passed
-    if (validationResult && !validationResult.valid) {
-      Alert.alert(
+    // Check if validation passed - skip if validation hasn't completed yet
+    if (validationResult && validationResult.valid === false) {
+      showAlert(
         'Cannot Place Order',
         validationResult.errors.join('\n'),
         [{ text: 'OK' }]
@@ -134,10 +154,22 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    // Get companyId from the first item's product
+    // In a multi-vendor scenario, you might need to group orders by company
+    const firstItem = items[0];
+    const companyId = firstItem?.product?.companyId;
+
+    if (!companyId) {
+      showAlert('Error', 'Unable to determine the vendor for this order');
+      return;
+    }
+
     const finalTotal = validationResult?.summary?.total ?? subtotal;
     const savings = previewPromotions.data?.totalSavings ?? 0;
 
-    Alert.alert(
+    console.log('Showing confirm dialog', { finalTotal, savings });
+
+    showAlert(
       'Confirm Order',
       `Total amount: IQD ${finalTotal.toLocaleString()}${savings > 0 ? `\nYou save: IQD ${savings.toLocaleString()}` : ''}`,
       [
@@ -145,24 +177,30 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
         {
           text: 'Place Order',
           onPress: () => {
+            console.log('Place Order confirmed, calling createOrder.mutate');
             createOrder.mutate(
               {
                 items: items.map((item) => ({
                   productId: item.productId,
                   quantity: item.quantity,
                 })),
-                deliveryAddress: deliveryAddressText,
+                addressId: selectedAddress.id,
+                companyId: companyId,
+                zone: selectedAddress.zone as 'KARKH' | 'RUSAFA',
                 notes: data.notes?.trim() || undefined,
+                paymentMethod: 'cash',
               },
               {
                 onSuccess: (order) => {
+                  console.log('Order created successfully', order);
                   clearCart();
                   navigation.replace('OrderConfirmation', { orderId: order.id });
                 },
                 onError: (error: any) => {
-                  Alert.alert(
+                  console.error('Order creation failed', error);
+                  showAlert(
                     'Order Failed',
-                    error.response?.data?.message || 'Failed to create order. Please try again.'
+                    error.response?.data?.message || error.response?.data?.error || 'Failed to create order. Please try again.'
                   );
                 },
               }
@@ -377,7 +415,15 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
             styles.placeOrderButton,
             createOrder.isPending && styles.disabledButton,
           ]}
-          onPress={handleSubmit(onSubmit)}
+          onPress={() => {
+            // If we have a selected address, bypass form validation for deliveryAddress
+            if (selectedAddress) {
+              const notes = getValues('notes');
+              onSubmit({ deliveryAddress: '', notes: notes || '' });
+            } else {
+              handleSubmit(onSubmit)();
+            }
+          }}
           disabled={createOrder.isPending}
         >
           {createOrder.isPending ? (
