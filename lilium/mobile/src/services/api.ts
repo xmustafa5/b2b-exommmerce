@@ -144,6 +144,16 @@ export const productsApi = {
 };
 
 // Orders API
+// Transform backend order to mobile Order type
+const transformOrder = (order: any): Order => ({
+  ...order,
+  totalAmount: order.total || order.totalAmount || 0,
+  items: order.items || [],
+  deliveryAddress: order.address
+    ? `${order.address.name || ''}, ${order.address.street || ''}, ${order.address.area || ''}`
+    : order.deliveryAddress || '',
+});
+
 export const ordersApi = {
   getOrders: async (params?: {
     page?: number;
@@ -155,7 +165,7 @@ export const ordersApi = {
     // Mobile expects { orders, total, page, totalPages }
     const apiData = response.data;
     return {
-      orders: apiData.orders || [],
+      orders: (apiData.orders || []).map(transformOrder),
       total: apiData.pagination?.total || 0,
       page: apiData.pagination?.page || 1,
       totalPages: apiData.pagination?.totalPages || 1,
@@ -164,27 +174,12 @@ export const ordersApi = {
 
   getOrderById: async (id: string): Promise<Order> => {
     const response = await api.get(`/orders/${id}`);
-    // Map backend order to mobile Order type
-    const order = response.data;
-    return {
-      ...order,
-      totalAmount: order.total || order.totalAmount,
-      deliveryAddress: order.address ?
-        `${order.address.name}, ${order.address.street}, ${order.address.area}` :
-        order.deliveryAddress || '',
-    };
+    return transformOrder(response.data);
   },
 
   createOrder: async (data: CreateOrderInput): Promise<Order> => {
     const response = await api.post('/orders', data);
-    const order = response.data;
-    return {
-      ...order,
-      totalAmount: order.total || order.totalAmount,
-      deliveryAddress: order.address ?
-        `${order.address.name}, ${order.address.street}, ${order.address.area}` :
-        order.deliveryAddress || '',
-    };
+    return transformOrder(response.data);
   },
 };
 
@@ -271,8 +266,101 @@ export const notifyMeApi = {
   },
 };
 
-// Cart API (Validation)
+// Cart API Types
+export interface ServerCartItem {
+  id: string;
+  productId: string;
+  quantity: number;
+  lineTotal: number;
+  product: Product;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServerCart {
+  id: string | null;
+  items: ServerCartItem[];
+  itemCount: number;
+  subtotal: number;
+  syncErrors?: string[];
+}
+
+// Cart API
 export const cartApi = {
+  // Get cart
+  get: async (): Promise<ServerCart> => {
+    const response = await api.get('/cart');
+    // Transform products in cart items
+    return {
+      ...response.data,
+      items: (response.data.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? transformProduct(item.product) : item.product,
+      })),
+    };
+  },
+
+  // Get cart count
+  getCount: async (): Promise<{ count: number }> => {
+    const response = await api.get('/cart/count');
+    return response.data;
+  },
+
+  // Add item to cart
+  addItem: async (productId: string, quantity: number): Promise<ServerCart> => {
+    const response = await api.post('/cart/items', { productId, quantity });
+    return {
+      ...response.data,
+      items: (response.data.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? transformProduct(item.product) : item.product,
+      })),
+    };
+  },
+
+  // Update item quantity
+  updateItem: async (productId: string, quantity: number): Promise<ServerCart> => {
+    const response = await api.put(`/cart/items/${productId}`, { quantity });
+    return {
+      ...response.data,
+      items: (response.data.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? transformProduct(item.product) : item.product,
+      })),
+    };
+  },
+
+  // Remove item from cart
+  removeItem: async (productId: string): Promise<ServerCart> => {
+    const response = await api.delete(`/cart/items/${productId}`);
+    return {
+      ...response.data,
+      items: (response.data.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? transformProduct(item.product) : item.product,
+      })),
+    };
+  },
+
+  // Clear cart
+  clear: async (): Promise<ServerCart> => {
+    const response = await api.delete('/cart');
+    return response.data;
+  },
+
+  // Sync local cart to server
+  sync: async (items: Array<{ productId: string; quantity: number }>): Promise<ServerCart> => {
+    const response = await api.post('/cart/sync', { items });
+    return {
+      ...response.data,
+      items: (response.data.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? transformProduct(item.product) : item.product,
+      })),
+    };
+  },
+
+  // Legacy validation endpoints
   validateCheckout: async (
     items: Array<{ productId: string; quantity: number }>,
     addressId?: string

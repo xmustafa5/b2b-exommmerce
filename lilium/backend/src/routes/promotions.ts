@@ -144,6 +144,104 @@ const promotionRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // Preview promotions for cart items (mobile app)
+  fastify.post('/preview', {
+    preHandler: [authenticate],
+    schema: {
+      tags: ['promotions'],
+      summary: 'Preview applicable promotions for cart items',
+      description: 'Preview which promotions would apply to the given cart items. Returns applicable promotions and total potential savings.',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['items'],
+        properties: {
+          items: {
+            type: 'array',
+            minItems: 1,
+            description: 'Array of cart items',
+            items: {
+              type: 'object',
+              required: ['productId', 'quantity'],
+              properties: {
+                productId: { type: 'string', description: 'Product ID' },
+                quantity: { type: 'integer', minimum: 1, description: 'Quantity' }
+              }
+            }
+          }
+        }
+      },
+      response: {
+        200: {
+          description: 'Preview of applicable promotions',
+          type: 'object',
+          properties: {
+            applicablePromotions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  code: { type: 'string' },
+                  name: { type: 'string' },
+                  description: { type: 'string', nullable: true },
+                  type: { type: 'string' },
+                  value: { type: 'number' }
+                }
+              }
+            },
+            totalSavings: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, async (request: any, reply) => {
+    try {
+      const { items } = request.body;
+
+      // Fetch product prices
+      const productIds = items.map((item: any) => item.productId);
+      const products = await fastify.prisma.product.findMany({
+        where: { id: { in: productIds } }
+      });
+
+      // Build cart items with prices
+      const cartItems = items.map((item: any) => {
+        const product = products.find((p: any) => p.id === item.productId);
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: product?.price || 0
+        };
+      });
+
+      // Use existing promotion service to calculate
+      const result = await promotionService.applyPromotionsToCart(cartItems);
+
+      // Transform to expected mobile format
+      const applicablePromotions = result.appliedPromotions.map((p: any) => ({
+        id: p.id,
+        code: p.id, // Use id as code if no code field
+        name: p.nameEn,
+        description: p.descriptionEn || null,
+        type: p.type,
+        value: p.value
+      }));
+
+      // Remove duplicates
+      const uniquePromotions = applicablePromotions.filter((p: any, index: number, self: any[]) =>
+        index === self.findIndex((t: any) => t.id === p.id)
+      );
+
+      return reply.send({
+        applicablePromotions: uniquePromotions,
+        totalSavings: result.totalDiscount
+      });
+    } catch (error) {
+      return handleError(error, reply, fastify.log);
+    }
+  });
+
   // Get single promotion
   fastify.get('/:id', {
     schema: {

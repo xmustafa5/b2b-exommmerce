@@ -108,7 +108,7 @@ export class OrderService {
           notes,
           paymentMethod: paymentMethod || 'cash',
           deliveryDate,
-          orderItems: {
+          items: {
             create: orderItems,
           },
           statusHistory: {
@@ -119,7 +119,7 @@ export class OrderService {
           },
         },
         include: {
-          orderItems: {
+          items: {
             include: {
               product: true,
             },
@@ -139,12 +139,14 @@ export class OrderService {
 
       // Update product stock
       for (const item of items) {
+        const product = products.find(p => p.id === item.productId)!;
+        const previousStock = product.stock;
+        const newStock = previousStock - item.quantity;
+
         await prisma.product.update({
           where: { id: item.productId },
           data: {
-            stock: {
-              decrement: item.quantity,
-            },
+            stock: newStock,
           },
         });
 
@@ -152,8 +154,12 @@ export class OrderService {
         await prisma.stockHistory.create({
           data: {
             productId: item.productId,
-            change: -item.quantity,
-            reason: `Order #${newOrder.id}`,
+            type: 'sale',
+            quantity: -item.quantity,
+            previousStock,
+            newStock,
+            reference: newOrder.id,
+            notes: `Order #${newOrder.orderNumber}`,
           },
         });
       }
@@ -208,7 +214,7 @@ export class OrderService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          orderItems: {
+          items: {
             include: {
               product: {
                 select: {
@@ -258,7 +264,7 @@ export class OrderService {
     const order = await this.fastify.prisma.order.findUnique({
       where,
       include: {
-        orderItems: {
+        items: {
           include: {
             product: true,
           },
@@ -330,7 +336,7 @@ export class OrderService {
         },
       },
       include: {
-        orderItems: {
+        items: {
           include: {
             product: true,
           },
@@ -384,36 +390,42 @@ export class OrderService {
   private async restoreStock(orderId: string) {
     const order = await this.fastify.prisma.order.findUnique({
       where: { id: orderId },
-      include: { orderItems: true },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
     });
 
     if (!order) return;
 
-    await this.fastify.prisma.$transaction(
-      order.orderItems.map(item =>
-        this.fastify.prisma.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              increment: item.quantity,
-            },
-          },
-        })
-      )
-    );
+    // Restore stock for each item
+    for (const item of order.items) {
+      const previousStock = item.product.stock;
+      const newStock = previousStock + item.quantity;
 
-    // Create stock history for restoration
-    await Promise.all(
-      order.orderItems.map(item =>
-        this.fastify.prisma.stockHistory.create({
-          data: {
-            productId: item.productId,
-            change: item.quantity,
-            reason: `Order #${orderId} cancelled`,
-          },
-        })
-      )
-    );
+      await this.fastify.prisma.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: newStock,
+        },
+      });
+
+      // Create stock history for restoration
+      await this.fastify.prisma.stockHistory.create({
+        data: {
+          productId: item.productId,
+          type: 'return',
+          quantity: item.quantity,
+          previousStock,
+          newStock,
+          reference: orderId,
+          notes: `Order #${order.orderNumber} cancelled`,
+        },
+      });
+    }
   }
 
   async getOrderStats(zone?: Zone) {

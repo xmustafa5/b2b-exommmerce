@@ -2,11 +2,10 @@ export type OrderStatus =
   | "PENDING"
   | "CONFIRMED"
   | "PROCESSING"
-  | "READY_FOR_DELIVERY"
-  | "OUT_FOR_DELIVERY"
+  | "SHIPPED"
   | "DELIVERED"
   | "CANCELLED"
-  | "RETURNED";
+  | "REFUNDED";
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Download, Loader2 } from "lucide-react";
+import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Download, Loader2, Package, Truck, PackageCheck } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useOrders, useConfirmOrder, useCancelOrder } from "@/hooks/useOrders";
+import { useOrders, useConfirmOrder, useCancelOrder, useProcessOrder, useShipOrder, useDeliverOrder } from "@/hooks/useOrders";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { exportApi } from "@/actions/export";
 import { useToast } from "@/hooks/use-toast";
@@ -39,22 +39,20 @@ const statusColors: Record<OrderStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
   CONFIRMED: "bg-blue-100 text-blue-700",
   PROCESSING: "bg-purple-100 text-purple-700",
-  READY_FOR_DELIVERY: "bg-cyan-100 text-cyan-700",
-  OUT_FOR_DELIVERY: "bg-indigo-100 text-indigo-700",
+  SHIPPED: "bg-indigo-100 text-indigo-700",
   DELIVERED: "bg-green-100 text-green-700",
   CANCELLED: "bg-red-100 text-red-700",
-  RETURNED: "bg-gray-100 text-gray-700",
+  REFUNDED: "bg-gray-100 text-gray-700",
 };
 
 const statusLabels: Record<OrderStatus, string> = {
   PENDING: "Pending",
   CONFIRMED: "Confirmed",
   PROCESSING: "Processing",
-  READY_FOR_DELIVERY: "Ready",
-  OUT_FOR_DELIVERY: "Out for Delivery",
+  SHIPPED: "Shipped",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
-  RETURNED: "Returned",
+  REFUNDED: "Refunded",
 };
 
 export default function OrdersPage() {
@@ -68,6 +66,9 @@ export default function OrdersPage() {
   const { data, isLoading } = useOrders(filters);
   const confirmMutation = useConfirmOrder();
   const cancelMutation = useCancelOrder();
+  const processMutation = useProcessOrder();
+  const shipMutation = useShipOrder();
+  const deliverMutation = useDeliverOrder();
 
   const handleExportCSV = async () => {
     setIsExporting(true);
@@ -135,10 +136,10 @@ export default function OrdersPage() {
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                 <SelectItem value="PROCESSING">Processing</SelectItem>
-                <SelectItem value="READY_FOR_DELIVERY">Ready</SelectItem>
-                <SelectItem value="OUT_FOR_DELIVERY">Out for Delivery</SelectItem>
+                <SelectItem value="SHIPPED">Shipped</SelectItem>
                 <SelectItem value="DELIVERED">Delivered</SelectItem>
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                <SelectItem value="REFUNDED">Refunded</SelectItem>
               </SelectContent>
             </Select>
 
@@ -262,6 +263,7 @@ export default function OrdersPage() {
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
+                              {/* PENDING: Confirm or Cancel */}
                               {order.status === "PENDING" && (
                                 <>
                                   <DropdownMenuItem
@@ -278,6 +280,42 @@ export default function OrdersPage() {
                                     Cancel Order
                                   </DropdownMenuItem>
                                 </>
+                              )}
+                              {/* CONFIRMED: Start Processing or Cancel */}
+                              {order.status === "CONFIRMED" && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => processMutation.mutate(order.id)}
+                                  >
+                                    <Package className="mr-2 h-4 w-4 text-purple-600" />
+                                    Start Processing
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleCancel(order.id)}
+                                    className="text-destructive"
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancel Order
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {/* PROCESSING: Ship Order */}
+                              {order.status === "PROCESSING" && (
+                                <DropdownMenuItem
+                                  onClick={() => shipMutation.mutate(order.id)}
+                                >
+                                  <Truck className="mr-2 h-4 w-4 text-indigo-600" />
+                                  Ship Order
+                                </DropdownMenuItem>
+                              )}
+                              {/* SHIPPED: Mark as Delivered */}
+                              {order.status === "SHIPPED" && (
+                                <DropdownMenuItem
+                                  onClick={() => deliverMutation.mutate(order.id)}
+                                >
+                                  <PackageCheck className="mr-2 h-4 w-4 text-green-600" />
+                                  Mark as Delivered
+                                </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>

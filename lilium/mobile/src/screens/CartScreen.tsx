@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, CartItem } from '../types';
@@ -32,7 +33,7 @@ const showAlert = (title: string, message: string, buttons?: Array<{ text: strin
 type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
 
 export const CartScreen: React.FC<Props> = ({ navigation }) => {
-  const { items, subtotal, removeItem, updateQuantity, itemCount } = useCart();
+  const { items, subtotal, removeItem, updateQuantity, itemCount, loading, error } = useCart();
 
   const handleRemoveItem = (productId: string, productName: string) => {
     showAlert(
@@ -128,10 +129,20 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Shopping Cart</Text>
-        <Text style={styles.headerSubtitle}>
-          {itemCount} {itemCount === 1 ? 'item' : 'items'}
-        </Text>
+        <View style={styles.headerRight}>
+          {loading && <ActivityIndicator size="small" color="#007AFF" style={styles.headerLoader} />}
+          <Text style={styles.headerSubtitle}>
+            {itemCount} {itemCount === 1 ? 'item' : 'items'}
+          </Text>
+        </View>
       </View>
+
+      {/* Error Banner */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
       {/* Cart Items */}
       {items.length === 0 ? (
@@ -195,6 +206,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 4,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  headerLoader: {
+    marginRight: 8,
+  },
+  errorBanner: {
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ffcdd2',
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 14,
+    textAlign: 'center',
   },
   cartList: {
     padding: 16,

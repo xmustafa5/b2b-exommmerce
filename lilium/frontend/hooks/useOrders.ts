@@ -90,3 +90,51 @@ export function useCancelOrder() {
     },
   });
 }
+
+export function useProcessOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.updateStatus(id, "PROCESSING", "Order is being processed"),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.all,
+      });
+    },
+  });
+}
+
+export function useShipOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.markAsShipped(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.all,
+      });
+    },
+  });
+}
+
+export function useDeliverOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.markAsDelivered(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.all,
+      });
+    },
+  });
+}

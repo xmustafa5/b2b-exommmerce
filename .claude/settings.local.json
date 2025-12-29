@@ -81,7 +81,18 @@
       "mcp__context7__get-library-docs",
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(timeout 30 npx expo start:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx tsx:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWpxeDhnNHUwMDAzMTZxaTQzbWdyNXQ4IiwiZW1haWwiOiJzaG9wMUBleGFtcGxlLmNvbSIsInJvbGUiOiJTSE9QX09XTkVSIiwiem9uZXMiOlsiS0FSS0giXSwiaWF0IjoxNzY2OTk4NDI3LCJleHAiOjE3NjcwMDIwMjd9.94YhvESsHeW_Gpqo1aeGDFnf2ojBr2zacTB9SoHzh2I\")",
+      "Bash(__NEW_LINE__ curl -s -X POST http://localhost:3000/api/orders )",
+      "Bash(__NEW_LINE__ curl -s -X POST http://localhost:3000/api/promotions/preview )",
+      "Bash(__NEW_LINE__ curl -s -X POST http://localhost:3000/api/addresses )",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWpxeHVhZmowMDAzMTZsYWpwa3llM2tkIiwiZW1haWwiOiJzaG9wMUBleGFtcGxlLmNvbSIsInJvbGUiOiJTSE9QX09XTkVSIiwiem9uZXMiOlsiS0FSS0giXSwiaWF0IjoxNzY2OTk5NzkzLCJleHAiOjE3NjcwMDMzOTN9.FX-TgwNhUv4IqF3QomnLXYiA7jQZlrNjy9OP5mR50hg\")",
+      "Bash(__NEW_LINE__ echo \"=== GET /api/cart ===\")",
+      "Bash(PRODUCT_ID=\"cmjqxuah8000g16la76z3d4fo\":*)",
+      "Bash(__NEW_LINE__ echo \"=== POST /api/cart/items - Add item with qty 15 ===\")",
+      "Bash(__NEW_LINE__ echo \"=== GET /api/cart/count ===\")",
+      "Bash(__NEW_LINE__ echo \"=== DELETE /api/cart/items/:productId - Remove one item ===\")"
     ],
     "deny": [],
     "ask": []

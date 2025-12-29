@@ -83,8 +83,10 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handleAddToCart = () => {
-    if (!product) return;
+  const [addingToCart, setAddingToCart] = useState(false);
+
+  const handleAddToCart = async () => {
+    if (!product || addingToCart) return;
 
     const minQty = Number(product.minOrderQuantity) || 1;
     const stock = Number(product.stock) || 0;
@@ -102,11 +104,18 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    addItem(product, quantity);
-    showAlert('Success', 'Product added to cart', [
-      { text: 'Continue Shopping', style: 'cancel' },
-      { text: 'View Cart', onPress: () => navigation.navigate('Cart') },
-    ]);
+    try {
+      setAddingToCart(true);
+      await addItem(product, quantity);
+      showAlert('Success', 'Product added to cart', [
+        { text: 'Continue Shopping', style: 'cancel' },
+        { text: 'View Cart', onPress: () => navigation.navigate('Cart') },
+      ]);
+    } catch (err: any) {
+      showAlert('Error', err.response?.data?.error || err.message || 'Failed to add item to cart');
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   const incrementQuantity = () => {
@@ -250,10 +259,15 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {/* Add to Cart Button */}
           <TouchableOpacity
-            style={styles.addToCartButton}
+            style={[styles.addToCartButton, addingToCart && styles.disabledButton]}
             onPress={handleAddToCart}
+            disabled={addingToCart}
           >
-            <Text style={styles.addToCartText}>Add to Cart</Text>
+            {addingToCart ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.addToCartText}>Add to Cart</Text>
+            )}
           </TouchableOpacity>
         </View>
       ) : (

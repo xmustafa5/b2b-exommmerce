@@ -60,14 +60,18 @@ export const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const handleAddToCart = (favorite: Favorite) => {
+  const handleAddToCart = async (favorite: Favorite) => {
     const { product } = favorite;
     const stock = Number(product.stock) || 0;
     const minQty = Number(product.minOrderQuantity) || 1;
 
     if (stock > 0) {
-      addItem(product, minQty);
-      showAlert('Added to Cart', `${product.nameEn} added to cart`);
+      try {
+        await addItem(product, minQty);
+        showAlert('Added to Cart', `${product.nameEn} added to cart`);
+      } catch (err: any) {
+        showAlert('Error', err.response?.data?.error || err.message || 'Failed to add item to cart');
+      }
     } else {
       showAlert('Out of Stock', 'This product is currently out of stock');
     }

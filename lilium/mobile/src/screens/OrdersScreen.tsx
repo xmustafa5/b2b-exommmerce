@@ -59,8 +59,10 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const renderOrder = ({ item }: { item: Order }) => {
-    const itemCount = item.items.reduce((total, orderItem) => total + orderItem.quantity, 0);
+    // Handle case where items might be empty (list view doesn't include items)
+    const itemCount = item.items?.reduce((total, orderItem) => total + orderItem.quantity, 0) || 0;
     const statusColor = getStatusColor(item.status);
+    const totalAmount = item.totalAmount || 0;
 
     return (
       <TouchableOpacity
@@ -70,7 +72,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.orderHeader}>
           <View>
-            <Text style={styles.orderNumber}>#{item.id.substring(0, 8)}</Text>
+            <Text style={styles.orderNumber}>#{item.orderNumber || item.id.substring(0, 8)}</Text>
             <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -79,14 +81,16 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.orderBody}>
-          <View style={styles.orderInfo}>
-            <Text style={styles.orderInfoLabel}>Items:</Text>
-            <Text style={styles.orderInfoValue}>{itemCount}</Text>
-          </View>
+          {itemCount > 0 && (
+            <View style={styles.orderInfo}>
+              <Text style={styles.orderInfoLabel}>Items:</Text>
+              <Text style={styles.orderInfoValue}>{itemCount}</Text>
+            </View>
+          )}
           <View style={styles.orderInfo}>
             <Text style={styles.orderInfoLabel}>Total:</Text>
             <Text style={styles.orderTotal}>
-              IQD {item.totalAmount.toLocaleString()}
+              IQD {totalAmount.toLocaleString()}
             </Text>
           </View>
         </View>

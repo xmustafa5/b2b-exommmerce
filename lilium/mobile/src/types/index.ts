@@ -102,11 +102,18 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   userId: string;
   user?: User;
   items: OrderItem[];
   status: OrderStatus;
   totalAmount: number;
+  subtotal?: number;
+  deliveryFee?: number;
+  discount?: number;
+  zone?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
   deliveryAddress: string;
   notes?: string;
   createdAt: string;
