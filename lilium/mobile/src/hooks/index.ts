@@ -54,3 +54,13 @@ export {
   useCategory,
   useActiveCategories,
 } from './useCategories';
+
+// Company/Vendor hooks
+export {
+  useCompanies,
+  useCompany,
+  useCompaniesByZone,
+  useCompanyProducts,
+  usePrefetchCompany,
+  useActiveCompanies,
+} from './useCompanies';

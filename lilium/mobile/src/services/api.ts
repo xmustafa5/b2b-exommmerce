@@ -16,6 +16,8 @@ import {
   Category,
   Address,
   AddressCreateInput,
+  Company,
+  CompaniesResponse,
 } from '../types';
 
 // API Base URL - Change this to your backend URL
@@ -480,6 +482,56 @@ export const addressesApi = {
   setDefault: async (id: string): Promise<Address> => {
     const response = await api.patch(`/addresses/${id}/default`);
     return transformAddress(response.data);
+  },
+};
+
+/**
+ * Transform backend company to mobile Company type
+ */
+const transformCompany = (company: any): Company => ({
+  ...company,
+  nameEn: company.nameEn || company.name,
+  logo: getImageUrl(company.logo),
+});
+
+// Companies API
+export const companiesApi = {
+  getAll: async (params?: {
+    zone?: string;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<CompaniesResponse> => {
+    const response = await api.get('/companies', { params });
+    const companies = response.data.companies || [];
+    return {
+      companies: companies.map(transformCompany),
+      total: response.data.total || companies.length,
+    };
+  },
+
+  getById: async (id: string): Promise<Company> => {
+    const response = await api.get(`/companies/${id}`);
+    return transformCompany(response.data.company || response.data);
+  },
+
+  getByZone: async (zone: string): Promise<Company[]> => {
+    const response = await api.get(`/companies/zone/${zone}`);
+    const companies = response.data.companies || [];
+    return companies.map(transformCompany);
+  },
+
+  getProducts: async (id: string, params?: { page?: number; limit?: number }): Promise<{
+    products: Product[];
+    total: number;
+  }> => {
+    const response = await api.get(`/companies/${id}/products`, { params });
+    const products = response.data.products || [];
+    return {
+      products: products.map(transformProduct),
+      total: response.data.total || products.length,
+    };
   },
 };
 

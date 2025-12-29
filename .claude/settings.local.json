@@ -92,7 +92,10 @@
       "Bash(PRODUCT_ID=\"cmjqxuah8000g16la76z3d4fo\":*)",
       "Bash(__NEW_LINE__ echo \"=== POST /api/cart/items - Add item with qty 15 ===\")",
       "Bash(__NEW_LINE__ echo \"=== GET /api/cart/count ===\")",
-      "Bash(__NEW_LINE__ echo \"=== DELETE /api/cart/items/:productId - Remove one item ===\")"
+      "Bash(__NEW_LINE__ echo \"=== DELETE /api/cart/items/:productId - Remove one item ===\")",
+      "Bash(sudo tee:*)",
+      "Bash(sudo sysctl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWpxeHVhZmowMDAzMTZsYWpwa3llM2tkIiwiZW1haWwiOiJzaG9wMUBleGFtcGxlLmNvbSIsInJvbGUiOiJTSE9QX09XTkVSIiwiem9uZXMiOlsiS0FSS0giXSwiaWF0IjoxNzM1NDY4NjgwLCJleHAiOjE3MzU0NzIyODB9.testtoken\")"
     ],
     "deny": [],
     "ask": []

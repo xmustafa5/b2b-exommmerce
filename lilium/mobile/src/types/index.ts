@@ -251,12 +251,41 @@ export interface AddressCreateInput {
   isDefault?: boolean;
 }
 
+// Company/Vendor types
+export interface Company {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  description?: string;
+  logo?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  zones: Zone[];
+  isActive: boolean;
+  deliveryFees?: Record<string, number>;
+  minOrderAmount?: number;
+  maxDeliveryTime?: number;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    products: number;
+    users: number;
+  };
+}
+
+export interface CompaniesResponse {
+  companies: Company[];
+  total: number;
+}
+
 // Navigation types
 export type RootStackParamList = {
   Login: undefined;
   Home: { categoryId?: string } | undefined;
   ProductDetail: { productId: string };
   Cart: undefined;
+  VendorDetail: { vendorId: string };
   Checkout: undefined;
   OrderConfirmation: { orderId: string };
   Orders: undefined;

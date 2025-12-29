@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,38 +9,30 @@ import {
   RefreshControl,
   TextInput,
   Image,
+  ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { useProducts, usePrefetchProduct } from '../hooks';
-import { Product } from '../types';
+import { Product, Category, Company } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
-import { FilterModal, FilterState } from '../components/FilterModal';
+import {
+  PromotionCarousel,
+  CategoryScroll,
+  VendorSection,
+  FeaturedProducts,
+} from '../components';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-const DEFAULT_FILTERS: FilterState = {
-  categoryId: undefined,
-  sortBy: 'newest',
-  inStockOnly: false,
-};
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [showProducts, setShowProducts] = useState(false);
   const user = useAuthStore((state) => state.user);
   const prefetchProduct = usePrefetchProduct();
-
-  // Count active filters
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (advancedFilters.categoryId) count++;
-    if (advancedFilters.sortBy !== 'newest') count++;
-    if (advancedFilters.inStockOnly) count++;
-    return count;
-  }, [advancedFilters]);
 
   // Use custom hook with memoized filters
   const filters = useMemo(() => ({
@@ -48,55 +40,37 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     limit: 20,
     search: search || undefined,
     zones: user?.zones,
-    categoryId: advancedFilters.categoryId,
-  }), [page, search, user?.zones, advancedFilters.categoryId]);
+    categoryId: selectedCategoryId,
+  }), [page, search, user?.zones, selectedCategoryId]);
 
   const { data, isLoading, refetch, isFetching } = useProducts(filters);
 
-  // Apply client-side sorting and in-stock filter
-  const sortedProducts = useMemo(() => {
-    if (!data?.products) return [];
-
-    let products = [...data.products];
-
-    // Apply in-stock filter
-    if (advancedFilters.inStockOnly) {
-      products = products.filter((p) => p.stock > 0);
-    }
-
-    // Apply sorting
-    switch (advancedFilters.sortBy) {
-      case 'price_low':
-        products.sort((a, b) => a.price - b.price);
-        break;
-      case 'price_high':
-        products.sort((a, b) => b.price - a.price);
-        break;
-      case 'name_asc':
-        products.sort((a, b) => a.nameEn.localeCompare(b.nameEn));
-        break;
-      case 'name_desc':
-        products.sort((a, b) => b.nameEn.localeCompare(a.nameEn));
-        break;
-      case 'newest':
-      default:
-        // Already sorted by newest from API
-        break;
-    }
-
-    return products;
-  }, [data?.products, advancedFilters.sortBy, advancedFilters.inStockOnly]);
-
-  const handleProductPress = (productId: string) => {
+  const handleProductPress = useCallback((productId: string) => {
     navigation.navigate('ProductDetail', { productId });
-  };
+  }, [navigation]);
 
-  const handleProductPressIn = (productId: string) => {
-    // Prefetch product data on press in for faster navigation
+  const handleProductPressIn = useCallback((productId: string) => {
     prefetchProduct(productId);
-  };
+  }, [prefetchProduct]);
 
-  const renderProduct = ({ item }: { item: Product }) => {
+  const handleCategoryPress = useCallback((category: Category | null) => {
+    setSelectedCategoryId(category?.id || undefined);
+    setShowProducts(true);
+    setPage(1);
+  }, []);
+
+  const handleVendorPress = useCallback((vendor: Company) => {
+    // Navigate to vendor detail screen or filter products by vendor
+    // For now, we'll just log it
+    console.log('Vendor pressed:', vendor.nameEn);
+    // navigation.navigate('VendorDetail', { vendorId: vendor.id });
+  }, [navigation]);
+
+  const handleSearchFocus = useCallback(() => {
+    setShowProducts(true);
+  }, []);
+
+  const renderProduct = useCallback(({ item }: { item: Product }) => {
     const price = Number(item.price) || 0;
     const stock = Number(item.stock) || 0;
     const minQty = Number(item.minOrderQuantity) || 1;
@@ -106,6 +80,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.productCard}
         onPress={() => handleProductPress(item.id)}
         onPressIn={() => handleProductPressIn(item.id)}
+        activeOpacity={0.8}
       >
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
@@ -114,96 +89,173 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.placeholderText}>No Image</Text>
           </View>
         )}
+
+        {/* Out of stock overlay */}
+        {stock <= 0 && (
+          <View style={styles.outOfStockOverlay}>
+            <Text style={styles.outOfStockText}>Out of Stock</Text>
+          </View>
+        )}
+
+        {/* Featured badge */}
+        {item.isFeatured && (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.featuredText}>⭐</Text>
+          </View>
+        )}
+
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>
             {item.nameEn}
           </Text>
           <Text style={styles.productPrice}>IQD {price.toLocaleString()}</Text>
-          <Text style={styles.productStock}>
-            Stock: {stock} | Min: {minQty}
+          <Text style={[
+            styles.productStock,
+            stock <= 0 && styles.productStockOut,
+            stock > 0 && stock <= 5 && styles.productStockLow,
+          ]}>
+            {stock <= 0 ? 'Out of stock' : stock <= 5 ? `Only ${stock} left` : `${stock} in stock`}
           </Text>
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [handleProductPress, handleProductPressIn]);
+
+  const products = data?.products || [];
 
   if (isLoading && !data) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#667EEA" />
       </View>
     );
   }
 
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello,</Text>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-        </View>
-      </View>
+  // If showing products list (after search or category selection)
+  if (showProducts || search.length > 0) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Search and Filter */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchRow}>
+        {/* Search Header */}
+        <View style={styles.searchHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              setShowProducts(false);
+              setSearch('');
+              setSelectedCategoryId(undefined);
+            }}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
           <TextInput
-            style={styles.searchInput}
+            style={styles.searchInputFull}
             placeholder="Search products..."
             value={search}
             onChangeText={setSearch}
+            autoFocus={search.length === 0 && !selectedCategoryId}
           />
-          <TouchableOpacity
-            style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
-            onPress={() => setFilterModalVisible(true)}
-          >
-            <Text style={styles.filterIcon}>⚙</Text>
-            {activeFilterCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Products List */}
-      <FlatList
-        data={sortedProducts}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.productsList}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No products found</Text>
-          </View>
-        }
+        {/* Category filter chips */}
+        <CategoryScroll
+          onCategoryPress={handleCategoryPress}
+          selectedCategoryId={selectedCategoryId}
+        />
+
+        {/* Products Grid */}
+        <FlatList
+          data={products}
+          renderItem={renderProduct}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.productsList}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyText}>No products found</Text>
+              <Text style={styles.emptySubtext}>Try a different search or category</Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+          }
+        />
+      </View>
+    );
+  }
+
+  // Home screen with Talabat-style layout
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isFetching} onRefresh={refetch} />
         }
-      />
-
-      {/* Pagination Info */}
-      {data && (
-        <View style={styles.paginationInfo}>
-          <Text style={styles.paginationText}>
-            Page {data.page} of {data.totalPages} | Total: {data.total}
-          </Text>
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>Hello,</Text>
+            <Text style={styles.userName}>{user?.businessName || user?.name || 'Welcome'}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            {user?.zones && user.zones.length > 0 && (
+              <View style={styles.zoneBadge}>
+                <Text style={styles.zoneIcon}>📍</Text>
+                <Text style={styles.zoneText}>{user.zones[0]}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      )}
 
-      {/* Filter Modal */}
-      <FilterModal
-        visible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-        currentFilters={advancedFilters}
-        onApply={(newFilters) => {
-          setAdvancedFilters(newFilters);
-          setPage(1); // Reset to first page when filters change
-        }}
-      />
+        {/* Search Bar */}
+        <TouchableOpacity
+          style={styles.searchContainer}
+          onPress={handleSearchFocus}
+          activeOpacity={0.8}
+        >
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.searchPlaceholder}>Search products, vendors...</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Promotions Carousel */}
+        <PromotionCarousel />
+
+        {/* Categories Horizontal Scroll */}
+        <CategoryScroll
+          onCategoryPress={handleCategoryPress}
+          selectedCategoryId={selectedCategoryId}
+        />
+
+        {/* Featured Products */}
+        <FeaturedProducts
+          zones={user?.zones}
+          onProductPress={(product) => handleProductPress(product.id)}
+        />
+
+        {/* Vendors Section */}
+        <VendorSection
+          zone={user?.zones?.[0]}
+          onVendorPress={handleVendorPress}
+          horizontal
+        />
+
+        {/* All Vendors Grid */}
+        <VendorSection
+          zone={user?.zones?.[0]}
+          onVendorPress={handleVendorPress}
+        />
+
+        {/* Bottom Padding */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 };
@@ -211,76 +263,103 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
   },
   greeting: {
     fontSize: 14,
     color: '#666',
   },
   userName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1a1a1a',
   },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  searchRow: {
+  zoneBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    backgroundColor: '#F0F0FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  searchInput: {
+  zoneIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  zoneText: {
+    fontSize: 12,
+    color: '#667EEA',
+    fontWeight: '600',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  searchPlaceholder: {
+    fontSize: 15,
+    color: '#999',
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#333',
+  },
+  searchInputFull: {
     flex: 1,
     height: 45,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
     paddingHorizontal: 16,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  filterButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterButtonActive: {
-    backgroundColor: '#007AFF',
-  },
-  filterIcon: {
-    fontSize: 20,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#ff3b30',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
   },
   productsList: {
     padding: 8,
@@ -289,17 +368,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     borderRadius: 12,
-    margin: 8,
+    margin: 6,
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
+    position: 'relative',
   },
   productImage: {
     width: '100%',
-    height: 150,
+    height: 140,
     backgroundColor: '#f0f0f0',
   },
   placeholderImage: {
@@ -310,42 +390,82 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 12,
   },
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  outOfStockText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#fff',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    zIndex: 2,
+  },
+  featuredText: {
+    fontSize: 14,
+  },
   productInfo: {
     padding: 12,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: '#1a1a1a',
+    marginBottom: 6,
+    lineHeight: 18,
+    height: 36,
   },
   productPrice: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#667EEA',
     marginBottom: 4,
   },
   productStock: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#4ECDC4',
+    fontWeight: '500',
+  },
+  productStockOut: {
+    color: '#FF6B6B',
+  },
+  productStockLow: {
+    color: '#FF9671',
   },
   emptyContainer: {
-    padding: 40,
+    padding: 60,
     alignItems: 'center',
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#999',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
   },
-  paginationInfo: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'center',
-  },
-  paginationText: {
+  emptySubtext: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
   },
 });

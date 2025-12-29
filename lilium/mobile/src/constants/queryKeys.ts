@@ -81,3 +81,13 @@ export const addressesQueryKeys = {
   detail: (id: string) => [...addressesQueryKeys.all, 'detail', id] as const,
   default: () => [...addressesQueryKeys.all, 'default'] as const,
 };
+
+export const companiesQueryKeys = {
+  all: ['companies'] as const,
+  lists: () => [...companiesQueryKeys.all, 'list'] as const,
+  list: (filters?: { zone?: string; isActive?: boolean }) => [...companiesQueryKeys.lists(), filters] as const,
+  details: () => [...companiesQueryKeys.all, 'detail'] as const,
+  detail: (id: string) => [...companiesQueryKeys.details(), id] as const,
+  byZone: (zone: string) => [...companiesQueryKeys.all, 'zone', zone] as const,
+  products: (id: string, params?: { page?: number; limit?: number }) => [...companiesQueryKeys.all, 'products', id, params] as const,
+};

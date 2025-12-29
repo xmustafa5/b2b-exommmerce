@@ -298,6 +298,162 @@ const cartRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * @route POST /api/cart/validate-checkout
+   * @description Validate cart items before checkout
+   * @access Private
+   */
+  fastify.post('/validate-checkout', {
+    preHandler: [authenticate],
+    schema: {
+      tags: ['Cart'],
+      summary: 'Validate checkout',
+      description: 'Validate cart items for checkout - checks stock, calculates totals with promotions',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['items'],
+        properties: {
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['productId', 'quantity'],
+              properties: {
+                productId: { type: 'string' },
+                quantity: { type: 'integer', minimum: 1 },
+              },
+            },
+          },
+          addressId: { type: 'string', nullable: true },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            valid: { type: 'boolean' },
+            errors: { type: 'array', items: { type: 'string' } },
+            warnings: { type: 'array', items: { type: 'string' } },
+            validatedItems: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  productId: { type: 'string' },
+                  requestedQuantity: { type: 'integer' },
+                  availableQuantity: { type: 'integer' },
+                  isAvailable: { type: 'boolean' },
+                  price: { type: 'number' },
+                  adjustedQuantity: { type: 'integer', nullable: true },
+                },
+              },
+            },
+            summary: {
+              type: 'object',
+              properties: {
+                subtotal: { type: 'number' },
+                discount: { type: 'number' },
+                deliveryFee: { type: 'number' },
+                total: { type: 'number' },
+                itemCount: { type: 'integer' },
+              },
+            },
+            promotionPreview: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                applicablePromotions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      name: { type: 'string' },
+                      type: { type: 'string' },
+                      value: { type: 'number' },
+                    },
+                  },
+                },
+                totalSavings: { type: 'number' },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request: any, reply) => {
+    try {
+      const { items, addressId } = request.body;
+      const result = await cartService.validateCheckout(request.user.userId, items, addressId);
+      return reply.send(result);
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(400).send({ error: error.message || 'Failed to validate checkout' });
+    }
+  });
+
+  /**
+   * @route POST /api/cart/quick-stock-check
+   * @description Quick stock availability check
+   * @access Private
+   */
+  fastify.post('/quick-stock-check', {
+    preHandler: [authenticate],
+    schema: {
+      tags: ['Cart'],
+      summary: 'Quick stock check',
+      description: 'Quickly check stock availability for cart items',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['items'],
+        properties: {
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['productId', 'quantity'],
+              properties: {
+                productId: { type: 'string' },
+                quantity: { type: 'integer', minimum: 1 },
+              },
+            },
+          },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            allAvailable: { type: 'boolean' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  productId: { type: 'string' },
+                  available: { type: 'boolean' },
+                  requestedQty: { type: 'integer' },
+                  availableQty: { type: 'integer' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request: any, reply) => {
+    try {
+      const { items } = request.body;
+      const result = await cartService.quickStockCheck(items);
+      return reply.send(result);
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(400).send({ error: error.message || 'Failed to check stock' });
+    }
+  });
+
+  /**
    * @route POST /api/cart/sync
    * @description Sync local cart with server
    * @access Private

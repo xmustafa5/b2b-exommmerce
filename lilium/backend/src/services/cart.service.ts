@@ -365,4 +365,173 @@ export class CartService {
     const count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     return { count };
   }
+
+  /**
+   * Validate checkout - check stock, calculate totals with promotions
+   */
+  async validateCheckout(
+    userId: string,
+    items: Array<{ productId: string; quantity: number }>,
+    addressId?: string
+  ) {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const validatedItems: Array<{
+      productId: string;
+      requestedQuantity: number;
+      availableQuantity: number;
+      isAvailable: boolean;
+      price: number;
+      adjustedQuantity?: number;
+    }> = [];
+
+    let subtotal = 0;
+    let itemCount = 0;
+
+    // Validate each item
+    for (const item of items) {
+      const product = await this.fastify.prisma.product.findFirst({
+        where: { id: item.productId, isActive: true },
+      });
+
+      if (!product) {
+        errors.push(`Product not found or inactive: ${item.productId}`);
+        validatedItems.push({
+          productId: item.productId,
+          requestedQuantity: item.quantity,
+          availableQuantity: 0,
+          isAvailable: false,
+          price: 0,
+        });
+        continue;
+      }
+
+      const isAvailable = product.stock >= item.quantity;
+      let adjustedQuantity: number | undefined;
+
+      if (!isAvailable && product.stock > 0) {
+        adjustedQuantity = product.stock;
+        warnings.push(`${product.nameEn}: only ${product.stock} available, quantity adjusted`);
+      } else if (product.stock === 0) {
+        errors.push(`${product.nameEn} is out of stock`);
+      }
+
+      if (item.quantity < product.minOrderQty) {
+        errors.push(`${product.nameEn}: minimum order quantity is ${product.minOrderQty}`);
+      }
+
+      const effectiveQuantity = adjustedQuantity ?? item.quantity;
+      const lineTotal = product.price * effectiveQuantity;
+
+      validatedItems.push({
+        productId: item.productId,
+        requestedQuantity: item.quantity,
+        availableQuantity: product.stock,
+        isAvailable,
+        price: product.price,
+        adjustedQuantity,
+      });
+
+      if (isAvailable || adjustedQuantity) {
+        subtotal += lineTotal;
+        itemCount += effectiveQuantity;
+      }
+    }
+
+    // Calculate promotions
+    let discount = 0;
+    let promotionPreview = null;
+
+    try {
+      // Import promotion service dynamically to avoid circular dependencies
+      const { PromotionService } = await import('./promotion.service');
+      const promotionService = new PromotionService(this.fastify);
+
+      // Prepare cart items for promotion calculation
+      const cartItemsForPromo = validatedItems
+        .filter(item => item.isAvailable || item.adjustedQuantity)
+        .map(item => ({
+          productId: item.productId,
+          quantity: item.adjustedQuantity ?? item.requestedQuantity,
+          price: item.price,
+        }));
+
+      if (cartItemsForPromo.length > 0) {
+        const promoResult = await promotionService.applyPromotionsToCart(cartItemsForPromo);
+        discount = promoResult.totalDiscount;
+
+        if (promoResult.appliedPromotions.length > 0) {
+          // Remove duplicates
+          const uniquePromotions = promoResult.appliedPromotions.filter(
+            (p: any, index: number, self: any[]) =>
+              index === self.findIndex((t: any) => t.id === p.id)
+          );
+
+          promotionPreview = {
+            applicablePromotions: uniquePromotions.map((p: any) => ({
+              id: p.id,
+              name: p.nameEn,
+              type: p.type,
+              value: p.value,
+            })),
+            totalSavings: discount,
+          };
+        }
+      }
+    } catch (error) {
+      // If promotion calculation fails, continue without promotions
+      this.fastify.log.warn('Failed to calculate promotions:', error);
+    }
+
+    // Calculate delivery fee (can be customized based on zone, total, etc.)
+    const deliveryFee = 0; // Free delivery for now
+
+    const total = Math.max(0, subtotal - discount + deliveryFee);
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      validatedItems,
+      summary: {
+        subtotal,
+        discount,
+        deliveryFee,
+        total,
+        itemCount,
+      },
+      promotionPreview,
+    };
+  }
+
+  /**
+   * Quick stock check for cart items
+   */
+  async quickStockCheck(items: Array<{ productId: string; quantity: number }>) {
+    const results: Array<{
+      productId: string;
+      available: boolean;
+      requestedQty: number;
+      availableQty: number;
+    }> = [];
+
+    for (const item of items) {
+      const product = await this.fastify.prisma.product.findFirst({
+        where: { id: item.productId, isActive: true },
+        select: { stock: true },
+      });
+
+      results.push({
+        productId: item.productId,
+        available: product ? product.stock >= item.quantity : false,
+        requestedQty: item.quantity,
+        availableQty: product?.stock ?? 0,
+      });
+    }
+
+    return {
+      allAvailable: results.every(r => r.available),
+      items: results,
+    };
+  }
 }
