@@ -177,10 +177,12 @@ export const orderItemSchema = z.object({
 
 export const createOrderSchema = z.object({
   addressId: z.string().min(1, 'Address is required'),
+  zone: z.nativeEnum(Zone),
+  companyId: z.string().min(1, 'Company ID is required'),
   items: z.array(orderItemSchema).min(1, 'At least one item is required').max(50, 'Maximum 50 items per order'),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
   promotionId: z.string().optional(),
-  paymentMethod: z.enum(['cash', 'card', 'online']).default('cash'),
+  paymentMethod: z.enum(['cash', 'card', 'bank_transfer']).default('cash'),
   deliveryDate: z.coerce.date().optional(),
 });
 

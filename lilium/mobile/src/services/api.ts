@@ -99,9 +99,11 @@ export const authApi = {
  * Transform backend product to mobile Product type
  * - Maps minOrderQty to minOrderQuantity
  * - Generates full imageUrl from images array
+ * - Preserves companyId for order creation
  */
 const transformProduct = (p: any): Product => ({
   ...p,
+  companyId: p.companyId, // Explicitly preserve companyId
   minOrderQuantity: p.minOrderQty || p.minOrderQuantity || 1,
   imageUrl: getImageUrl(p.images?.[0]) || getImageUrl(p.imageUrl),
   images: (p.images || []).map((img: string) => getImageUrl(img) || img),

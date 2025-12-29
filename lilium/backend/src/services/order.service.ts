@@ -4,12 +4,16 @@ import { OrderStatus, Zone } from '@prisma/client';
 interface CreateOrderInput {
   userId: string;
   addressId: string;
+  zone: Zone;
+  companyId: string;
   items: Array<{
     productId: string;
     quantity: number;
     notes?: string;
   }>;
   notes?: string;
+  paymentMethod?: 'cash' | 'card' | 'bank_transfer';
+  deliveryDate?: Date;
 }
 
 interface OrderFilters {
@@ -28,7 +32,7 @@ export class OrderService {
   }
 
   async createOrder(data: CreateOrderInput) {
-    const { userId, addressId, items, notes } = data;
+    const { userId, addressId, zone, companyId, items, notes, paymentMethod, deliveryDate } = data;
 
     // Validate address belongs to user
     const address = await this.fastify.prisma.address.findFirst({
@@ -77,10 +81,11 @@ export class OrderService {
 
       return {
         productId: item.productId,
+        nameAr: product.nameAr,
+        nameEn: product.nameEn,
         quantity: item.quantity,
         price: product.price,
         total: itemTotal,
-        notes: item.notes,
       };
     });
 
@@ -94,18 +99,22 @@ export class OrderService {
         data: {
           userId,
           addressId,
+          zone,
+          companyId,
           status: OrderStatus.PENDING,
           subtotal,
           deliveryFee,
           total,
           notes,
+          paymentMethod: paymentMethod || 'cash',
+          deliveryDate,
           orderItems: {
             create: orderItems,
           },
           statusHistory: {
             create: {
-              status: OrderStatus.PENDING,
-              note: 'Order created',
+              toStatus: OrderStatus.PENDING,
+              comment: 'Order created',
             },
           },
         },
@@ -314,8 +323,9 @@ export class OrderService {
         status: newStatus,
         statusHistory: {
           create: {
-            status: newStatus,
-            note: note || `Status changed to ${newStatus}`,
+            fromStatus: order.status,
+            toStatus: newStatus,
+            comment: note || `Status changed to ${newStatus}`,
           },
         },
       },

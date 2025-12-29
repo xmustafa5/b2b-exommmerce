@@ -19,6 +19,7 @@ import type { RootStackParamList, CartValidationResult, Address } from '../types
 import { useCart } from '../contexts/CartContext';
 import { useCreateOrder, useValidateCheckout, usePreviewPromotions, useAddresses } from '../hooks';
 import { checkoutSchema, CheckoutFormData } from '../schemas';
+import { productsApi } from '../services/api';
 
 // Helper for cross-platform alerts
 const showAlert = (
@@ -130,7 +131,7 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [items.length]);
 
-  const onSubmit = (data: CheckoutFormData) => {
+  const onSubmit = async (data: CheckoutFormData) => {
     console.log('onSubmit called', { data, selectedAddress, items: items.length, validationResult });
 
     if (items.length === 0) {
@@ -155,12 +156,23 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     // Get companyId from the first item's product
-    // In a multi-vendor scenario, you might need to group orders by company
+    // If companyId is missing (old cart data), fetch the product to get it
     const firstItem = items[0];
-    const companyId = firstItem?.product?.companyId;
+    let companyId = firstItem?.product?.companyId;
+
+    if (!companyId && firstItem?.productId) {
+      try {
+        console.log('CompanyId missing, fetching product details...');
+        const product = await productsApi.getProductById(firstItem.productId);
+        companyId = product.companyId;
+        console.log('Fetched companyId:', companyId);
+      } catch (error) {
+        console.error('Failed to fetch product details:', error);
+      }
+    }
 
     if (!companyId) {
-      showAlert('Error', 'Unable to determine the vendor for this order');
+      showAlert('Error', 'Unable to determine the vendor for this order. Please clear your cart and add items again.');
       return;
     }
 
@@ -185,7 +197,7 @@ export const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
                   quantity: item.quantity,
                 })),
                 addressId: selectedAddress.id,
-                companyId: companyId,
+                companyId: companyId!,
                 zone: selectedAddress.zone as 'KARKH' | 'RUSAFA',
                 notes: data.notes?.trim() || undefined,
                 paymentMethod: 'cash',

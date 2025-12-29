@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ export function VendorProductCreateDialog({
 }: VendorProductCreateDialogProps) {
   const createMutation = useCreateVendorProduct();
   const { data: categories } = useCategories();
+  const [images, setImages] = useState<string[]>([]);
 
   const {
     register,
@@ -86,12 +88,17 @@ export function VendorProductCreateDialog({
   useEffect(() => {
     if (open) {
       reset();
+      setImages([]);
     }
   }, [open, reset]);
 
   const onSubmit = async (data: CreateProductFormData) => {
     try {
-      await createMutation.mutateAsync(data);
+      const submitData = {
+        ...data,
+        images: images.length > 0 ? images : undefined,
+      };
+      await createMutation.mutateAsync(submitData);
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to create product:", getErrorMessage(error));
@@ -166,6 +173,17 @@ export function VendorProductCreateDialog({
               <Label htmlFor="descriptionAr">Arabic Description</Label>
               <Textarea id="descriptionAr" {...register("descriptionAr")} dir="rtl" />
             </div>
+          </div>
+
+          {/* Product Images */}
+          <div className="space-y-2">
+            <Label>Product Images</Label>
+            <ImageUpload
+              value={images}
+              onChange={(value) => setImages((value as string[]) || [])}
+              multiple
+              maxFiles={5}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

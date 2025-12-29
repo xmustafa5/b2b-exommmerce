@@ -425,7 +425,7 @@ const orderRoutes: FastifyPluginAsync = async (fastify) => {
           },
           notes: { type: 'string', maxLength: 500, description: 'Order notes or special instructions' },
           promotionId: { type: 'string', description: 'Promotion code to apply' },
-          paymentMethod: { type: 'string', enum: ['cash', 'card', 'bank_transfer'], description: 'Payment method' },
+          paymentMethod: { type: 'string', enum: ['cash', 'card', 'bank_transfer'], default: 'cash', description: 'Payment method' },
           deliveryDate: { type: 'string', format: 'date-time', description: 'Preferred delivery date' }
         }
       },
