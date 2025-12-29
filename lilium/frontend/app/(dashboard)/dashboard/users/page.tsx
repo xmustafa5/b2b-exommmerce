@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   UserPlus,
@@ -13,7 +14,9 @@ import {
   Store,
   Shield,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
+import { useAuthStore } from "@/store/auth";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +70,12 @@ import type { Admin, ShopOwner, AdminFilters, ShopOwnerFilters, Zone } from "@/t
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { user } = useAuthStore();
+
+  // Role-based access control - only SUPER_ADMIN can access this page
+  const allowedRoles = ["SUPER_ADMIN"];
+  const hasAccess = user?.role && allowedRoles.includes(user.role);
 
   // Admin filters state
   const [adminFilters, setAdminFilters] = useState<AdminFilters>({});
@@ -144,6 +153,32 @@ export default function UsersPage() {
       day: "numeric",
     });
   };
+
+  // Show access denied message for unauthorized users
+  if (!hasAccess) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <ShieldAlert className="h-8 w-8 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Access Denied</h3>
+                <p className="text-muted-foreground">
+                  You don't have permission to access this page. This page is only available to Super Admins.
+                </p>
+              </div>
+              <Button onClick={() => router.push("/dashboard")} className="mt-4">
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6">

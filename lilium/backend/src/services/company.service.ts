@@ -415,11 +415,11 @@ export class CompanyService {
           take: limit,
           include: {
             category: true,
-            user: {
+            company: {
               select: {
                 id: true,
-                name: true,
-                email: true
+                nameEn: true,
+                nameAr: true
               }
             },
             _count: {

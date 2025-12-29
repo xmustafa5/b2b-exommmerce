@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -14,7 +15,9 @@ import {
   DollarSign,
   Gift,
   Package,
+  ShieldAlert,
 } from "lucide-react";
+import { useAuthStore } from "@/store/auth";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +94,8 @@ const isPromotionUpcoming = (startDate: string) => {
 };
 
 export default function PromotionsPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
   const [filters, setFilters] = useState<PromotionFilters>({});
   const [search, setSearch] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -98,6 +103,10 @@ export default function PromotionsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
   const [deletingPromotion, setDeletingPromotion] = useState<Promotion | null>(null);
+
+  // Role-based access control - only SUPER_ADMIN can access this page
+  const allowedRoles = ["SUPER_ADMIN"];
+  const hasAccess = user?.role && allowedRoles.includes(user.role);
 
   const { data: promotions, isLoading } = usePromotions(filters);
   const toggleMutation = useTogglePromotion();
@@ -151,6 +160,35 @@ export default function PromotionsPage() {
     }
     return <Badge variant="default">Active</Badge>;
   };
+
+  // Show access denied message for unauthorized users
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Promotions" />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <ShieldAlert className="h-8 w-8 text-destructive" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Access Denied</h3>
+                  <p className="text-muted-foreground">
+                    You don't have permission to access this page. This page is only available to Super Admins.
+                  </p>
+                </div>
+                <Button onClick={() => router.push("/dashboard")} className="mt-4">
+                  Go to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">

@@ -1,12 +1,13 @@
 import { FastifyPluginAsync } from 'fastify';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
+import { UserRole } from '@prisma/client';
 import { handleError } from '../utils/errors';
 import { updateUserSchema } from '../types/validation';
 
 const usersRoutes: FastifyPluginAsync = async (fastify) => {
-  // Get all users (protected)
+  // Get all users (SUPER_ADMIN only)
   fastify.get('/', {
-    preHandler: [authenticate],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
     schema: {
       description: 'Get all users',
       tags: ['Users'],
@@ -54,7 +55,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Get user by ID (protected)
+  // Get user by ID (SUPER_ADMIN only, or own profile)
   fastify.get('/:id', {
     preHandler: [authenticate],
     schema: {
@@ -90,6 +91,11 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
 
+      // Only SUPER_ADMIN can view other users, others can only view themselves
+      if (request.user.role !== UserRole.SUPER_ADMIN && request.user.userId !== id) {
+        return reply.code(403).send({ error: 'Access denied', code: 'FORBIDDEN' });
+      }
+
       const user = await fastify.prisma.user.findUnique({
         where: { id },
         select: {
@@ -115,7 +121,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Update user (protected - can only update own profile)
+  // Update user (protected - can only update own profile, or SUPER_ADMIN)
   fastify.put('/:id', {
     preHandler: [authenticate],
     schema: {
@@ -157,8 +163,8 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
 
-      // Check if user is updating their own profile
-      if (request.user.userId !== id) {
+      // Only SUPER_ADMIN can update other users, others can only update themselves
+      if (request.user.role !== UserRole.SUPER_ADMIN && request.user.userId !== id) {
         return reply.code(403).send({ error: 'You can only update your own profile', code: 'FORBIDDEN' });
       }
 
@@ -183,9 +189,9 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Delete user (protected - can only delete own profile)
+  // Delete user (SUPER_ADMIN only)
   fastify.delete('/:id', {
-    preHandler: [authenticate],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
     schema: {
       description: 'Delete user account',
       tags: ['Users'],
@@ -211,9 +217,9 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { id } = request.params;
 
-      // Check if user is deleting their own profile
-      if (request.user.userId !== id) {
-        return reply.code(403).send({ error: 'You can only delete your own profile', code: 'FORBIDDEN' });
+      // Cannot delete yourself
+      if (request.user.userId === id) {
+        return reply.code(400).send({ error: 'Cannot delete your own account', code: 'BAD_REQUEST' });
       }
 
       await fastify.prisma.user.delete({

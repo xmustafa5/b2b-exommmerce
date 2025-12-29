@@ -247,7 +247,7 @@ export class VendorService {
   async getVendorOrders(
     companyId: string,
     filter: VendorOrderFilter = {}
-  ): Promise<{ orders: any[]; total: number }> {
+  ): Promise<{ data: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     const {
       status,
       fromDate,
@@ -266,7 +266,7 @@ export class VendorService {
     const productIds = vendorProducts.map(p => p.id);
 
     if (productIds.length === 0) {
-      return { orders: [], total: 0 };
+      return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
     }
 
     // Find orders that contain vendor's products
@@ -340,7 +340,15 @@ export class VendorService {
       };
     });
 
-    return { orders: ordersWithVendorTotals, total };
+    return {
+      data: ordersWithVendorTotals,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**
@@ -567,7 +575,7 @@ export class VendorService {
     companyId: string,
     page: number = 1,
     limit: number = 20
-  ): Promise<{ customers: any[]; total: number }> {
+  ): Promise<{ data: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     // Get vendor's product IDs
     const vendorProducts = await this.fastify.prisma.product.findMany({
       where: { companyId },
@@ -577,7 +585,7 @@ export class VendorService {
     const productIds = vendorProducts.map(p => p.id);
 
     if (productIds.length === 0) {
-      return { customers: [], total: 0 };
+      return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
     }
 
     // Find unique users who ordered vendor's products
@@ -661,7 +669,15 @@ export class VendorService {
       distinct: ['userId'],
     });
 
-    return { customers, total };
+    return {
+      data: customers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**
@@ -669,7 +685,7 @@ export class VendorService {
    */
   async getAllOrders(
     filter: VendorOrderFilter = {}
-  ): Promise<{ orders: any[]; total: number }> {
+  ): Promise<{ data: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     const {
       status,
       fromDate,
@@ -720,7 +736,15 @@ export class VendorService {
       this.fastify.prisma.order.count({ where }),
     ]);
 
-    return { orders, total };
+    return {
+      data: orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**
@@ -735,18 +759,18 @@ export class VendorService {
 
     switch (dataType) {
       case 'products':
-        const { products } = await this.getVendorProducts(companyId, { limit: 10000 });
-        data = products;
+        const productsResult = await this.getVendorProducts(companyId, { limit: 10000 });
+        data = productsResult.data;
         break;
 
       case 'orders':
-        const { orders } = await this.getVendorOrders(companyId, { limit: 10000 });
-        data = orders;
+        const ordersResult = await this.getVendorOrders(companyId, { limit: 10000 });
+        data = ordersResult.data;
         break;
 
       case 'customers':
-        const { customers } = await this.getVendorCustomers(companyId, 1, 10000);
-        data = customers;
+        const customersResult = await this.getVendorCustomers(companyId, 1, 10000);
+        data = customersResult.data;
         break;
 
       default:

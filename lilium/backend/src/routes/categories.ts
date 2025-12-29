@@ -94,9 +94,9 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Get category stats
+  // Get category stats (SUPER_ADMIN only)
   fastify.get('/stats', {
-    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
     schema: {
       tags: ['categories'],
       summary: 'Get category statistics',
@@ -249,9 +249,9 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Create category (Admin only)
+  // Create category (SUPER_ADMIN only)
   fastify.post('/', {
-    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
     schema: {
       tags: ['categories'],
       summary: 'Create a new category',
@@ -352,9 +352,9 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Update category (Admin only)
+  // Update category (SUPER_ADMIN only)
   fastify.put('/:id', {
-    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
     schema: {
       tags: ['categories'],
       summary: 'Update a category',
@@ -471,9 +471,9 @@ const categoryRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Reorder categories (Admin only)
+  // Reorder categories (SUPER_ADMIN only)
   fastify.patch('/reorder', {
-    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN, UserRole.LOCATION_ADMIN)],
+    preHandler: [authenticate, requireRole(UserRole.SUPER_ADMIN)],
     schema: {
       tags: ['categories'],
       summary: 'Reorder categories',

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Download, Loader2, Package, Truck, PackageCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Download, Loader2, Package, Truck, PackageCheck, ShieldAlert } from "lucide-react";
+import { useAuthStore } from "@/store/auth";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,11 +59,17 @@ const statusLabels: Record<OrderStatus, string> = {
 
 export default function OrdersPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { user } = useAuthStore();
   const [filters, setFilters] = useState<OrderFilters>({
     page: 1,
     limit: 10,
   });
   const [isExporting, setIsExporting] = useState(false);
+
+  // Role-based access control - only SUPER_ADMIN and LOCATION_ADMIN can access this page
+  const allowedRoles = ["SUPER_ADMIN", "LOCATION_ADMIN"];
+  const hasAccess = user?.role && allowedRoles.includes(user.role);
 
   const { data, isLoading } = useOrders(filters);
   const confirmMutation = useConfirmOrder();
@@ -100,6 +108,35 @@ export default function OrdersPage() {
       cancelMutation.mutate({ id, reason: "Cancelled by vendor" });
     }
   };
+
+  // Show access denied message for unauthorized users
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Orders" />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <ShieldAlert className="h-8 w-8 text-destructive" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Access Denied</h3>
+                  <p className="text-muted-foreground">
+                    You don't have permission to access this page. This page is only available to administrators.
+                  </p>
+                </div>
+                <Button onClick={() => router.push("/dashboard/vendors")} className="mt-4">
+                  Go to Vendor Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">

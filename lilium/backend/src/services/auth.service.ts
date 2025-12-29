@@ -42,11 +42,11 @@ export class AuthService {
       throw this.fastify.httpErrors.unauthorized('Invalid email or password');
     }
 
-    // Verify user has dashboard access (VENDOR, COMPANY_MANAGER, ADMIN, SUPER_ADMIN)
+    // Verify user has dashboard access (COMPANY_ADMIN, COMPANY_USER, LOCATION_ADMIN, SUPER_ADMIN)
     const dashboardRoles: UserRole[] = [
-      UserRole.VENDOR,
-      UserRole.COMPANY_MANAGER,
-      UserRole.ADMIN,
+      UserRole.COMPANY_ADMIN,
+      UserRole.COMPANY_USER,
+      UserRole.LOCATION_ADMIN,
       UserRole.SUPER_ADMIN
     ];
 

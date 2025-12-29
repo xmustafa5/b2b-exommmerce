@@ -7,3 +7,4 @@ export { OrderConfirmationScreen } from './OrderConfirmationScreen';
 export { OrdersScreen } from './OrdersScreen';
 export { OrderDetailScreen } from './OrderDetailScreen';
 export { ProfileScreen } from './ProfileScreen';
+export { VendorDetailScreen } from './VendorDetailScreen';

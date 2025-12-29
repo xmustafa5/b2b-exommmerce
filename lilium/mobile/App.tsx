@@ -23,6 +23,7 @@ import { AddAddressScreen } from './src/screens/AddAddressScreen';
 import { EditAddressScreen } from './src/screens/EditAddressScreen';
 import { CategoriesScreen } from './src/screens/CategoriesScreen';
 import { NotifyMeListScreen } from './src/screens/NotifyMeListScreen';
+import { VendorDetailScreen } from './src/screens/VendorDetailScreen';
 import type { RootStackParamList } from './src/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -244,6 +245,11 @@ function AppNavigator() {
               name="NotifyMeList"
               component={NotifyMeListScreen}
               options={{ title: 'Back in Stock' }}
+            />
+            <Stack.Screen
+              name="VendorDetail"
+              component={VendorDetailScreen}
+              options={{ headerShown: false }}
             />
           </>
         )}

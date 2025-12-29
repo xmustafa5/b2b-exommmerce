@@ -429,8 +429,16 @@ const vendorRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            products: { type: 'array', items: productSchema },
-            total: { type: 'integer', description: 'Total number of products matching the filter' }
+            data: { type: 'array', items: productSchema },
+            pagination: {
+              type: 'object',
+              properties: {
+                page: { type: 'integer' },
+                limit: { type: 'integer' },
+                total: { type: 'integer' },
+                totalPages: { type: 'integer' }
+              }
+            }
           }
         },
         401: {
@@ -818,8 +826,16 @@ const vendorRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            orders: { type: 'array', items: orderSchema },
-            total: { type: 'integer', description: 'Total number of orders matching the filter' }
+            data: { type: 'array', items: orderSchema },
+            pagination: {
+              type: 'object',
+              properties: {
+                page: { type: 'integer' },
+                limit: { type: 'integer' },
+                total: { type: 'integer' },
+                totalPages: { type: 'integer' }
+              }
+            }
           }
         },
         401: {
@@ -981,8 +997,16 @@ const vendorRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            customers: { type: 'array', items: customerSchema },
-            total: { type: 'integer', description: 'Total number of customers' }
+            data: { type: 'array', items: customerSchema },
+            pagination: {
+              type: 'object',
+              properties: {
+                page: { type: 'integer' },
+                limit: { type: 'integer' },
+                total: { type: 'integer' },
+                totalPages: { type: 'integer' }
+              }
+            }
           }
         },
         401: {

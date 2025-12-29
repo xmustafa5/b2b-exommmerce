@@ -254,18 +254,18 @@ export function VendorProductsTab() {
             </Table>
           )}
 
-          {data && data.pagination.total > 0 && (
+          {data && data.pagination && data.pagination.total > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing {data?.data?.length} of {data.pagination.total} products
+                Showing {data?.data?.length || 0} of {data.pagination.total} products
               </p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={data.pagination.page === 1}
+                  disabled={!data.pagination.page || data.pagination.page === 1}
                   onClick={() =>
-                    setFilters({ ...filters, page: data.pagination.page - 1 })
+                    setFilters({ ...filters, page: (data.pagination?.page || 2) - 1 })
                   }
                 >
                   Previous
@@ -274,10 +274,10 @@ export function VendorProductsTab() {
                   variant="outline"
                   size="sm"
                   disabled={
-                    data.pagination.page >= data.pagination.totalPages
+                    !data.pagination.page || data.pagination.page >= data.pagination.totalPages
                   }
                   onClick={() =>
-                    setFilters({ ...filters, page: data.pagination.page + 1 })
+                    setFilters({ ...filters, page: (data.pagination?.page || 0) + 1 })
                   }
                 >
                   Next

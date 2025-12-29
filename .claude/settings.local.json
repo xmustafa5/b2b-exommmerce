@@ -95,7 +95,11 @@
       "Bash(__NEW_LINE__ echo \"=== DELETE /api/cart/items/:productId - Remove one item ===\")",
       "Bash(sudo tee:*)",
       "Bash(sudo sysctl:*)",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWpxeHVhZmowMDAzMTZsYWpwa3llM2tkIiwiZW1haWwiOiJzaG9wMUBleGFtcGxlLmNvbSIsInJvbGUiOiJTSE9QX09XTkVSIiwiem9uZXMiOlsiS0FSS0giXSwiaWF0IjoxNzM1NDY4NjgwLCJleHAiOjE3MzU0NzIyODB9.testtoken\")"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWpxeHVhZmowMDAzMTZsYWpwa3llM2tkIiwiZW1haWwiOiJzaG9wMUBleGFtcGxlLmNvbSIsInJvbGUiOiJTSE9QX09XTkVSIiwiem9uZXMiOlsiS0FSS0giXSwiaWF0IjoxNzM1NDY4NjgwLCJleHAiOjE3MzU0NzIyODB9.testtoken\")",
+      "Bash(timeout 10 bash:*)",
+      "Bash(# Check available routes curl -s http://localhost:3000/docs/json)",
+      "Bash(__NEW_LINE__ TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWpyMzB5Nm8wMDAxMTZhdnptMWR1MmRpIiwiZW1haWwiOiJ2ZW5kb3JAaXJhcWktbWVkaWNpbmUuY29tIiwicm9sZSI6IkNPTVBBTllfQURNSU4iLCJ6b25lcyI6WyJLQVJLSCIsIlJVU0FGQSJdLCJpYXQiOjE3NjcwMTU0NzksImV4cCI6MTc2NzAxOTA3OX0._4yNn3CO5JXAbbjQNScP-ATODnre5xg8tBveEuiAH6k\")",
+      "Bash(__NEW_LINE__ echo \"========================================\")"
     ],
     "deny": [],
     "ask": []
