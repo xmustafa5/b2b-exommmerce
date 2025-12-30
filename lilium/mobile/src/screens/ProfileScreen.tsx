@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { useAuthStore } from '../store/authStore';
@@ -55,9 +56,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <ScrollView style={styles.container}>
-      {/* User Info Section */}
-      <View style={styles.userSection}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={styles.scrollView}>
+        {/* User Info Section */}
+        <View style={styles.userSection}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
             {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -151,12 +153,13 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
 
-      {/* App Info */}
-      <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>Lilium Mobile</Text>
-        <Text style={styles.appInfoText}>Version 1.0.0</Text>
-      </View>
-    </ScrollView>
+        {/* App Info */}
+        <View style={styles.appInfo}>
+          <Text style={styles.appInfoText}>Lilium Mobile</Text>
+          <Text style={styles.appInfoText}>Version 1.0.0</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -164,6 +167,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollView: {
+    flex: 1,
   },
   userSection: {
     backgroundColor: '#fff',

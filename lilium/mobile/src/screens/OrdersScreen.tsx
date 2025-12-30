@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Order, OrderStatus } from '../types';
 import { useOrders, usePrefetchOrder } from '../hooks';
@@ -107,7 +108,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Orders</Text>
@@ -137,7 +138,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={isFetching} onRefresh={refetch} />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

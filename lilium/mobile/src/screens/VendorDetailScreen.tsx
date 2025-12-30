@@ -14,6 +14,7 @@ import {
   Platform,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Product, Category } from '../types';
 import { useCompany, useCompanyProducts } from '../hooks/useCompanies';
@@ -43,6 +44,7 @@ const VENDOR_COLORS = [
 ];
 
 export const VendorDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { vendorId } = route.params;
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
@@ -167,10 +169,10 @@ export const VendorDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const renderHeader = () => (
     <>
       {/* Vendor Hero Section */}
-      <View style={[styles.heroSection, { backgroundColor: getVendorColor }]}>
+      <View style={[styles.heroSection, { backgroundColor: getVendorColor, paddingTop: insets.top + 20 }]}>
         {/* Back Button */}
         <TouchableOpacity
-          style={styles.headerBackBtn}
+          style={[styles.headerBackBtn, { top: insets.top + 10 }]}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.headerBackIcon}>←</Text>
@@ -405,7 +407,6 @@ const styles = StyleSheet.create({
 
   // Hero Section
   heroSection: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 30,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -414,7 +415,6 @@ const styles = StyleSheet.create({
   },
   headerBackBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
     left: 16,
     width: 40,
     height: 40,

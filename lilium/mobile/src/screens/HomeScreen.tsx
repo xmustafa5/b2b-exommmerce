@@ -14,6 +14,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { useProducts, usePrefetchProduct, useActiveCategories, useActivePromotions, useFeaturedProducts, useActiveCompanies } from '../hooks';
 import { Product, Category, Company, Promotion } from '../types';
@@ -53,6 +54,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
@@ -159,7 +161,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Products list view (after search or category selection)
   if (showProducts || search.length > 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
         <View style={styles.searchHeader}>
           <TouchableOpacity
@@ -223,7 +225,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           }
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={COLORS.primary} />}
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -238,7 +240,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
         {/* Hero Header with Gradient */}
         <View style={styles.heroHeader}>
-          <View style={styles.heroGradient}>
+          <View style={[styles.heroGradient, { paddingTop: insets.top + 10 }]}>
             {/* Location & Profile Row */}
             <View style={styles.topRow}>
               <View style={styles.locationContainer}>
@@ -598,7 +600,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
   },
   heroGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingHorizontal: 20,
   },
   topRow: {

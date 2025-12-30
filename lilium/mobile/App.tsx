@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useAuthStore } from './src/store/authStore';
 import { CartProvider, useCart } from './src/contexts/CartContext';
@@ -260,12 +261,14 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <StatusBar style="auto" />
-        <AppNavigator />
-      </CartProvider>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <CartProvider>
+          <StatusBar style="auto" />
+          <AppNavigator />
+        </CartProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -25,10 +25,10 @@ import {
 // - iOS Simulator: http://localhost:3000/api
 // - Android Emulator: http://10.0.2.2:3000/api
 // - Physical Device: http://YOUR_IP:3000/api
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://192.168.0.121:3000/api';
 
 // Base URL for static files (images, uploads)
-const STATIC_BASE_URL = 'http://localhost:3000';
+const STATIC_BASE_URL = 'http://192.168.0.121:3000';
 
 /**
  * Get full image URL from relative path

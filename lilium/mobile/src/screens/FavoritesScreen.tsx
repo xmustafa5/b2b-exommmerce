@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Favorite } from '../types';
 import { useFavorites, useRemoveFavorite } from '../hooks';
@@ -143,7 +144,7 @@ export const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Favorites</Text>
@@ -177,7 +178,7 @@ export const FavoritesScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={isFetching} onRefresh={refetch} />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
